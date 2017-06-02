@@ -1,11 +1,12 @@
 #include "../include/rest.h"
 #include "../include/types.h"
-
-int DISC_REST_GetChannel(Channel *channel, snowflake channelId){
+Channel DISC_REST_GetChannel(snowflake channelId){
   int error = 0;
-
-
-  return error;
+  Channel *channel;
+  char *url = DISCORD_GATEWAY_BASE_URL + '/' + channelid;
+  char *message_fmt = "GET " + *url;
+  //Insert web request code here lol I'm bad
+  return *channel;
 }
 
 
