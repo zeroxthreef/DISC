@@ -1,5 +1,4 @@
 #include <stdint.h>
-
 typedef uint64_t snowflake;
 typedef uint8_t  BOOL;
 typedef uint32_t sessionID; //no need for anything larger. No way more than uint sessions will be used ever
@@ -246,7 +245,9 @@ typedef struct{
 } Invite_Guild;
 
 typedef struct{
-
+  snowflake channel_id;
+  char *name;
+  char *type;
 } Invite_Channel;
 
 typedef struct{
