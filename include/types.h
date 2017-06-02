@@ -2,7 +2,7 @@
 
 typedef uint64_t snowflake;
 typedef uint8_t  BOOL;
-typedef unsigned int sessionID; //no need for anything larger. No way more than uint sessions will be used ever
+typedef uint32_t sessionID; //no need for anything larger. No way more than uint sessions will be used ever
 
 
 typedef struct{
