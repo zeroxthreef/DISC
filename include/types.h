@@ -1,8 +1,7 @@
 #include <stdint.h>
-
 typedef uint64_t snowflake;
 typedef uint8_t  BOOL;
-typedef unsigned int sessionID; //no need for anything larger. No way more than uint sessions will be used ever
+typedef uint32_t sessionID; //no need for anything larger. No way more than uint sessions will be used ever
 
 
 typedef struct{
@@ -142,7 +141,7 @@ typedef struct{
 	char* name;
 	char* value;
 	int isInline;//crap, seems this is a keyword. Rename this. TODO TODO TODO TODO
-} Feild;
+} Field;
 
 typedef struct{
 	char* title;
@@ -157,7 +156,7 @@ typedef struct{
 	Video video;
 	Provider provider;
 	Author author;
-	Feild *feilds; //TODO this is an array. needs malloc
+	Field *fields; //TODO this is an array. needs malloc
 } Embed;
 
 typedef struct{
@@ -246,7 +245,9 @@ typedef struct{
 } Invite_Guild;
 
 typedef struct{
-
+  snowflake channel_id;
+  char *name;
+  char *type;
 } Invite_Channel;
 
 typedef struct{
