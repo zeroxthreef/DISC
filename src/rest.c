@@ -1,9 +1,8 @@
 #include "../include/rest.h"
-
+#include "../include/types.h"
 
 int DISC_REST_GetChannel(Channel *channel, snowflake channelId){
   int error = 0;
-
 
 
   return error;
