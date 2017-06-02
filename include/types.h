@@ -142,7 +142,7 @@ typedef struct{
 	char* name;
 	char* value;
 	int isInline;//crap, seems this is a keyword. Rename this. TODO TODO TODO TODO
-} Feild;
+} Field;
 
 typedef struct{
 	char* title;
@@ -157,7 +157,7 @@ typedef struct{
 	Video video;
 	Provider provider;
 	Author author;
-	Feild *feilds; //TODO this is an array. needs malloc
+	Field *fields; //TODO this is an array. needs malloc
 } Embed;
 
 typedef struct{
