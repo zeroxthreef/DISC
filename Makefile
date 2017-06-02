@@ -25,4 +25,4 @@ run:
 	./$(COMPILENAMENIX)
 
 clean:
-	rm -f *.o
+	rm -f *.o, $(COMPILENAMENIX)

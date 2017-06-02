@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include "../include/disc.h"
 
 Session session;

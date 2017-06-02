@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "../include/disc.h"
 
 sessionID sessionIDNum = 0; //iterate the session id with every session. TODO REPLACE THIS WITH AN ARRAY OF SESSIONS SO THEY CAN BE FREED

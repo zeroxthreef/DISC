@@ -1,24 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+int DISC_socket_httpGET(char *URL, unsigned char *data, unsigned long *dataLen, BOOL isSSL);
 
-#include <event2/event.h>
+int DISC_socket_httpPOST(char *URL, unsigned char *data, unsigned long dataLen, BOOL isSSL);
 
-#ifdef _WIN32
+int DISC_socket_httpPATCH(char *URL, unsigned char *data, unsigned long dataLen, BOOL isSSL);
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
+int DISC_socket_httpPUT(char *URL, unsigned char *data, unsigned long dataLen, BOOL isSSL);
 
-#else
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-
-#endif
-
-#include "../include/types.h"
-
+int DISC_socket_httpDELETE(char *URL, BOOL isSSL);
 
 #ifdef _WIN32
 int DISC_socket_Connect(SOCKET socket);
