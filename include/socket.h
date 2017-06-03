@@ -1,3 +1,8 @@
+enum DISC_SSL_TYPE{
+  SSL,
+  NOTSSL,
+};
+
 int DISC_socket_httpGET(char *URL, unsigned char *data, unsigned long *dataLen, BOOL isSSL);
 
 int DISC_socket_httpPOST(char *URL, unsigned char *data, unsigned long dataLen, BOOL isSSL);

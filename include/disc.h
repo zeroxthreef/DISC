@@ -12,8 +12,8 @@ enum DISC_Logging{
 	DISC_LOG_ONLY_IMPORTANT,
 };
 
-int DISC_CreateSession(Session *session, char* token, int isBot);
+int DISC_CreateSession(Session *session, char* token, int isBot, int logType);
 
 int DISC_DestroySession(Session *session);
 
-int DISC_HandleEvents(Session *session);
+int DISC_HandleEvents(Session *session, unsigned int numOfSessions);

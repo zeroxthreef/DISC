@@ -9,6 +9,7 @@ typedef struct{
   char *token;
   BOOL clientType;
   sessionID id;
+  BOOL logtype;
 } Session;
 
 

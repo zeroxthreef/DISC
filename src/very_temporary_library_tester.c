@@ -34,10 +34,10 @@ int main(int argc, char *argv[]){
 
 
 
-  DISC_CreateSession(&session, "token goes here :)", DISC_ACCOUNT_TYPE_BOT);
+  DISC_CreateSession(&session, "token goes here :)", DISC_ACCOUNT_TYPE_BOT, DISC_LOG_EVERYTHING);
 
 
-  DISC_HandleEvents(&session);
+  DISC_HandleEvents(&session, 1);//you can have an array of sessions
 
 
 
