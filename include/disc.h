@@ -1,5 +1,6 @@
 #include "../include/types.h"
 #include "../include/socket.h"
+#include "../include/errors.h"
 
 
 enum DISC_AccountTypes{
@@ -10,6 +11,7 @@ enum DISC_AccountTypes{
 enum DISC_Logging{
 	DISC_LOG_EVERYTHING,
 	DISC_LOG_ONLY_IMPORTANT,
+	DISC_LOG_NOTHING,
 };
 
 int DISC_CreateSession(Session *session, char* token, int isBot, int logType);

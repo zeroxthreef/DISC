@@ -34,14 +34,20 @@ int main(int argc, char *argv[]){
 
 
 
-  DISC_CreateSession(&session, "token goes here :)", DISC_ACCOUNT_TYPE_BOT, DISC_LOG_EVERYTHING);
+  if(DISC_CreateSession(&session, "token goes here :)", DISC_ACCOUNT_TYPE_BOT, DISC_LOG_EVERYTHING)){
+    DISC_PrintError();
+  }
 
 
-  DISC_HandleEvents(&session, 1);//you can have an array of sessions
+  if(DISC_HandleEvents(&session, 1)){//you can have an array of sessions
+    DISC_PrintError();
+  }
 
 
 
-  DISC_DestroySession(&session);
+  if(DISC_DestroySession(&session)){
+    DISC_PrintError();
+  }
 
   return 0;
 }

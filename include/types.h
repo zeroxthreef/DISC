@@ -171,7 +171,7 @@ typedef struct{
 } Member;
 
 typedef struct{
-  snowflake id; 
+  snowflake id;
   char *name;
 } Account;
 
