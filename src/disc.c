@@ -19,13 +19,13 @@ int DISC_CreateSession(Session *session, char* token, int isBot, int logType){ /
 
 
 
-  printf("Successfully created session with: Token: %s and it is a ", token);
+  printf("Successfully created session with: Token: %s and it is a %s", token, isBot ? "bot\n" : "user\n");
 
-  if(isBot){
+  /*if(isBot){
     printf("bot\n");
   } else{
     printf("user\n");
-  }
+  }*/
 
   //connect to the gateway
 
