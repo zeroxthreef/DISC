@@ -6,7 +6,7 @@
 sessionID sessionIDNum = 0; //iterate the session id with every session. TODO REPLACE THIS WITH AN ARRAY OF SESSIONS SO THEY CAN BE FREED
 
 
-int DISC_CreateSession(Session *session, char* token, int isBot, int logType){ //takes the token, if it's a bot, and a pointer to the ID and returns error if it didnt work
+int DISC_CreateSession(Session *session, Callbacks *callbacks, char* token, int isBot, int logType){ //takes the token, if it's a bot, and a pointer to the ID and returns error if it didnt work
 
 
   //set up the session

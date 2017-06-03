@@ -1,14 +1,14 @@
 const char *DISCORD_REST_BASE_URL = "https://discordapp.com/api"; //this should never change unless discord does. thanks boysanic
 
-int DISC_REST_GetChannel(Channel *channel, snowflake channelID);
+int DISC_REST_GetChannel(snowflake channelID, Channel *channel);
 
 int DISC_REST_ModifyChannel(snowflake channelID, char *name, int position, char *topic, int bitrate, int user_limit);
 
 int DISC_REST_DeleteChannel(snowflake channelID);
 
-int DISC_REST_GetChannelMessages(snowflake channelID, snowflake around, snowflake before, snowflake after, int limit);
+int DISC_REST_GetChannelMessages(snowflake channelID, snowflake around, snowflake before, snowflake after, int limit, Message *messages);
 
-int DISC_REST_GetChannelMessage(Message *message, snowflake channelID, snowflake messageID);
+int DISC_REST_GetChannelMessage(snowflake channelID, snowflake messageID, Message *message);
 
 int DISC_REST_CreateMessage(snowflake channelID, char *content, snowflake nonce, BOOL tts, unsigned char *data, Embed embed);
 

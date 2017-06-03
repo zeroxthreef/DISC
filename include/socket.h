@@ -1,6 +1,6 @@
 enum DISC_SSL_TYPE{
-  SSL,
-  NOTSSL,
+  DISC_USE_SSL,
+  DISC_NO_SSL,
 };
 
 int DISC_socket_httpGET(char *URL, unsigned char *data, unsigned long *dataLen, BOOL isSSL);

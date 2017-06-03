@@ -14,7 +14,7 @@ enum DISC_Logging{
 	DISC_LOG_NOTHING,
 };
 
-int DISC_CreateSession(Session *session, char* token, int isBot, int logType);
+int DISC_CreateSession(Session *session, Callbacks *callbacks, char* token, int isBot, int logType);
 
 int DISC_DestroySession(Session *session);
 

@@ -34,7 +34,8 @@ int main(int argc, char *argv[]){
 
 
 
-  if(DISC_CreateSession(&session, "token goes here :)", DISC_ACCOUNT_TYPE_BOT, DISC_LOG_EVERYTHING)){
+
+  if(DISC_CreateSession(&session, &callbacks, "token goes here :)", DISC_ACCOUNT_TYPE_BOT, DISC_LOG_EVERYTHING)){
     DISC_PrintError();
   }
 

@@ -1,5 +1,5 @@
 # DISC
-A discord library for C
+A discord library for C. You can use it with C++, but it doesn't have any nifty objects.
 
 ## Status
 Very broken and in early stages. I plan on completing this.
