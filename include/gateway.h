@@ -1,1 +1,1 @@
-const char *DISCORD_GATEWAY_BASE_URL = "wss://gateway.discord.gg/";
+const char *DISCORD_GATEWAY_BASE_URL = "gateway.discord.gg/";

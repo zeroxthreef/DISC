@@ -17,10 +17,10 @@ int DISC_REST_GetChannel(snowflake channelID, Channel *channel){//TODO TODO make
   asprintf(url, "%s/%lu", DISCORD_REST_BASE_URL, channelID);
 
 
-  if(DISC_socket_httpGET(url, response, &responseLength, DISC_USE_SSL)){
-    DISC_AddError(DISC_RETURN_SUCCESS);
-    return DISC_RETURN_SUCCESS;
-  }
+  //if(DISC_socket_httpGET(url, response, &responseLength, DISC_USE_SSL)){
+    //DISC_AddError(DISC_RETURN_SUCCESS);
+    //return DISC_RETURN_SUCCESS;
+  //}
   //verify that it is a channel object, not a DM channel object
 
 

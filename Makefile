@@ -10,8 +10,8 @@ WINCC = i686-w64-mingw32-gcc
 
 C_OBJ = $(SOURCES:.o)
 
-LIBSNIX = -lm -lcrypto -lssl -levent
-LIBSWIN = -lm -mwindows -lcrypto -lssl -levent
+LIBSNIX = -lm -lcrypto -lssl
+LIBSWIN = -lm -mwindows -lcrypto -lssl
 
 COMPILE_FLAGS = -g -Wall -o
 

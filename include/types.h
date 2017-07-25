@@ -200,7 +200,7 @@ typedef struct{
   int expire_grace_period;
   User user;
   Account account;
-  char *synced_at; //cormat this later
+  char *synced_at; //format this later
 } Integration;
 
 typedef struct{

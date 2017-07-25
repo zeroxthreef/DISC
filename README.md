@@ -5,7 +5,7 @@ A discord library for C. You can use it with C++, but it doesn't have any nifty 
 Very broken and in early stages. I plan on completing this.
 
 ## Libraries Needed
-You're gonna need libevent and openssl.
+You're gonna need openssl.
 
 ## Want to test your bot?
 This is a guild where you can invite your bots and talk to me about features you want to add or bugs that need to be squashed.

@@ -6,9 +6,9 @@ Session session;
 
 Callbacks callbacks;//make a command callback struct too
 
-void connect(Session *session, void *object){
-  printf("Connected\n");
-}
+//void connect(Session *session, void *object){
+  //printf("Connected\n");
+//}
 //Prototype code that im experimenting with to see how I want to do stuff with the objects
 /*
 void message(Session *session, void *object){
@@ -26,7 +26,7 @@ void message(Session *session, void *object){
 */
 
 int main(int argc, char *argv[]){
-  callbacks.ready = connect;
+  //callbacks.ready = connect;
 
   //DISC_InitCommands();
   //DISC_AddCommands();
@@ -35,9 +35,19 @@ int main(int argc, char *argv[]){
 
 
 
+
   if(DISC_CreateSession(&session, &callbacks, "token goes here :)", DISC_ACCOUNT_TYPE_BOT, DISC_LOG_EVERYTHING)){
     DISC_PrintError();
   }
+
+  //-------------------------------------------------------------------------------
+  unsigned char *data = NULL;
+  unsigned long length;
+  if(DISC_socket_httpGET("discord.com/api", &data, &length, DISC_USE_SSL, NULL)){
+    DISC_PrintError();
+  }
+  printf("hhheeay [%s] [%lu]\n", data, length);
+  //-------------------------------------------------------------------------------
 
 
   if(DISC_HandleEvents(&session, 1)){//you can have an array of sessions
@@ -49,6 +59,5 @@ int main(int argc, char *argv[]){
   if(DISC_DestroySession(&session)){
     DISC_PrintError();
   }
-
   return 0;
 }

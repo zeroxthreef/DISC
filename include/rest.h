@@ -1,4 +1,4 @@
-const char *DISCORD_REST_BASE_URL = "https://discordapp.com/api"; //this should never change unless discord does. thanks boysanic
+const char *DISCORD_REST_BASE_URL = "discordapp.com/api"; //this should never change unless discord does. thanks boysanic
 
 int DISC_REST_GetChannel(snowflake channelID, Channel *channel);
 
