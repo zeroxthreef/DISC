@@ -326,6 +326,26 @@ short DisC_REST_GetChannel(DisC_session_t *session, DisC_snowflake_t channelId, 
   return returnval;
 }
 
+short DisC_REST_ModifyChannel(DisC_session_t *session, DisC_snowflake_t channelId, char *name, int position, char *topic, DisC_BOOL_t nsfw, int bitrate, int userLimit, DisC_overwrite_t *overwrites, DisC_snowflake_t parentId)
+{
+  //the snowflake goes in url
+}
+
+short DisC_REST_DeleteChannel(DisC_session_t *session, DisC_snowflake_t channelId)
+{
+
+}
+
+short DisC_REST_GetChennelMessages(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t around, DisC_snowflake_t before, DisC_snowflake_t after, int limit, DisC_message_t *messages)
+{
+
+}
+
+short DisC_REST_GetChannelMessage(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId, DisC_message_t *message)
+{
+
+}
+
 short DisC_REST_CreateMessage(DisC_session_t *session, DisC_snowflake_t channelId, char *content, DisC_snowflake_t nonce, DisC_BOOL_t tts, unsigned char *fileData, unsigned long fileDataLen, DisC_embed_t *embed)//get channel id and add parameters
 {
   short returnval;
@@ -408,3 +428,95 @@ short DisC_REST_CreateMessage(DisC_session_t *session, DisC_snowflake_t channelI
 
   return returnval;
 }
+
+short DisC_REST_CreateReaction(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId, DisC_emoji_t *emoji)
+{
+  //204 on success
+}
+
+short DisC_REST_DeleteOwnReaction(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId, DisC_emoji_t *emoji)
+{
+  //204 on success
+}
+
+short DisC_REST_DeleteUserReaction(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId, DisC_emoji_t *emoji, DisC_snowflake_t userId)
+{
+  //204 on success
+}
+
+short DisC_REST_GetReactions(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId, DisC_emoji_t *emoji, DisC_user_t *users)
+{
+  //use GET query string
+}
+
+short DisC_REST_DeleteAllReactions(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId)
+{
+  //assumin 204 is good
+}
+
+short DisC_REST_EditMessage(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId)
+{
+  //basically the same as create message
+}
+
+short DisC_REST_DeleteMessage(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId)
+{
+  //204 on success
+}
+
+short DisC_REST_BulkDeleteMessages(DisC_session *session, DisC_snowflake_t channelId)
+{
+  //204 on success
+}
+
+short DisC_REST_EditChannelPermissions(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t overwriteId)
+{
+  //204 on success
+}
+
+short DisC_REST_GetChannelInvites(DisC_session *session, DisC_snowflake_t channelId, DisC_invite_channel_t *invites)
+{
+  //invites on success
+}
+
+short DisC_REST_CreateChannelInvite(DisC_session *session, DisC_snowflake_t channelId, DisC_invite_channel_t *invite)
+{
+  //returns invite object
+}
+
+short DisC_REST_DeleteChannelPermission(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t overwriteId)
+{
+  //204 on success
+}
+
+short DisC_REST_TriggerTypingIndicator(DisC_session *session, DisC_snowflake_t channelId)
+{
+  //204 on sucess
+}
+
+short DisC_REST_GetPinnedMessages(DisC_session *session, DisC_snowflake_t channelId, DisC_message_t *messages)
+{
+  //returns array of message objects
+}
+
+short DisC_REST_AddPinnedChannelMessage(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId)
+{
+  //204 on success
+}
+
+short DisC_REST_DeletePinnedChannelMessage(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId)
+{
+  //204 in success
+}
+
+short DisC_REST_GroupDMAddRecipient(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t userId)
+{
+  //maybe 200 on success
+}
+
+short DisC_REST_GroupDMRemoveRecipient(DisC_session *session, DisC_snowflake_t channelId, DisC_snowflake_t userId)
+{
+  //maybe 204 on success
+}
+
+//end of channel REST functions
