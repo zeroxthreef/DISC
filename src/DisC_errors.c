@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../include/errors.h"
+#include "DisC_errors.h"
 
-char *errors[] = {
+const char *errors[] = {//never set so thread safe
   "Operation was successfull.\0",
   "There was a generic error. This is most likely not severe.\0",
   "The account has insufficient permissions to do this.\0",
@@ -14,13 +14,23 @@ char *errors[] = {
   "Not enough ram or memory corruption.\0"
 };
 
-int currentError = 0;
 
-void DISC_PrintError(){
-  printf("%s\n", errors[currentError]);
-  currentError = 0;
+void DisC_PrintError(DisC_session_t *session)
+{
+  printf("%s\n", errors[session->DONOTSET_currentError]);
 }
 
-void DISC_AddError(int error){
-  currentError = error;
+const char *DisC_GetSessionErrorString(DisC_session_t *session)
+{
+  return errors[session->DONOTSET_currentError];
+}
+
+const char *DisC_GetErrorString(unsigned short error)
+{
+  return errors[error];
+}
+
+void DisC_AddError(DisC_session_t *session, int error)
+{
+  session->DONOTSET_currentError = error;
 }
