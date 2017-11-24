@@ -3,9 +3,21 @@ A discord library for C. You can use it with C++, but it doesn't have any nifty 
 
 Also, sorry for the hiatus. I had alot of things get in the way.
 
+## Build instructions
+* ./configure
+* make
+* make install
+
 ## Status
 Very broken and in early stages. I plan on completing this.
 Also, I'll be changing the name from DISC to DisC in the future.
+
+## TODO
+* Add all REST functions
+* Add ratelimiting
+* Connect to the gateway
+* Add everything to work with the gateway and use callbacks
+* Add better thread support
 
 ## Thread saftey
 currently, DisC is single threaded and doesnt support threading as far as I know. I will add this in the future.

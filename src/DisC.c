@@ -48,7 +48,7 @@ short DisC_DesroySession(DisC_session_t *session)
 
 short DisC_StartAllSessions()
 {
-
+  //TODO make a custom loop that runs in threads
 
 
   return DISC_ERROR_NONE;

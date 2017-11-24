@@ -66,11 +66,12 @@ void DisC_Log(short logLevel, const char *logLoc, unsigned short severity, const
     	timeStr[strlen(timeStr)-1] = '\0';
       //time stuff
 
-      if((finalString = malloc((strlen(timeStr) * sizeof(char)) + (strlen(tempString) * sizeof(char)) + 2)) == NULL)//2 because the 0x00 and space
+      //if((finalString = calloc((strlen(timeStr) * sizeof(char)) + (strlen(tempString) * sizeof(char)) + 2), sizeof(char)) == NULL)//2 because the 0x00 and space
+      if((finalString = calloc(strlen(timeStr) + strlen(tempString) + 2, sizeof(char))) == NULL)//2 because the 0x00 and space
       {
         exit(1);
       }
-      *finalString = 0x00;
+      //*finalString = 0x00;
 
       strcat(finalString, timeStr);
       strcat(finalString, " ");
@@ -94,8 +95,8 @@ void DisC_Log(short logLevel, const char *logLoc, unsigned short severity, const
       }
 
       fclose(logFile);
-      //free(tempString);
-      //free(finalString);
+      free(tempString);
+      free(finalString);
       //free(timeStr);
     }
   }
