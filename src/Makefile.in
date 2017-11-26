@@ -127,7 +127,7 @@ libDisC_a_LIBADD =
 am__objects_1 =
 am_libDisC_a_OBJECTS = $(am__objects_1) DisC.$(OBJEXT) \
 	DisC_errors.$(OBJEXT) DisC_util.$(OBJEXT) DisC_rest.$(OBJEXT) \
-	DisC_object.$(OBJEXT)
+	DisC_object.$(OBJEXT) DisC_gateway.$(OBJEXT)
 libDisC_a_OBJECTS = $(am_libDisC_a_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -280,7 +280,8 @@ libDisC_a_HEADERS = \
                     DisC_errors.h \
                     DisC_util.h \
                     DisC_rest.h \
-                    DisC_object.h
+                    DisC_object.h \
+                    DisC_gateway.h
 
 libDisC_a_SOURCES = \
                     $(libDisC_a_HEADERS) \
@@ -288,7 +289,8 @@ libDisC_a_SOURCES = \
                     DisC_errors.c \
                     DisC_util.c \
                     DisC_rest.c \
-                    DisC_object.c
+                    DisC_object.c \
+                    DisC_gateway.c
 
 all: all-am
 
@@ -369,6 +371,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DisC.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DisC_errors.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DisC_gateway.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DisC_object.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DisC_rest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DisC_util.Po@am__quote@

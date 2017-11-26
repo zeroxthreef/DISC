@@ -9,6 +9,8 @@ extern "C" {
 #include "DisC_errors.h"
 #include "DisC_util.h"
 #include "DisC_rest.h"
+#include "DisC_object.h"
+#include "DisC_gateway.h"
 
 
 short DisC_InitLibrary();

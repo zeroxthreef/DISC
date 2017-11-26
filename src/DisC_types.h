@@ -33,23 +33,11 @@ enum DisC_accountTypes
   DISC_ACCOUNT_TYPE_BOT
 };
 
-typedef struct{
-  char *token;
-  DisC_BOOL_t clientType;
-  short logLevel;
-  const char *internalName;//used for identifying what session is which in logs. Just for fun
-  const char *logFileLocation;
-  //lib handles the rest of these
-  DisC_sessionID_t DONOTSET_id;
-  unsigned short DONOTSET_currentError;
-  SSL_CTX *DONOTSET_rest_ctx;
-  BIO *DONOTSET_rest_bio;
-  SSL_CTX *DONOTSET_gateway_ctx;
-  BIO *DONOTSET_gateway_bio;
-} DisC_session_t;
 
 
-typedef void (*DisC_callback_t) (DisC_session_t *session, void *object, unsigned int type);
+
+//typedef void (*DisC_callback_t)(DisC_session_t *session, void *object, unsigned int type);
+typedef void (*DisC_callback_t)(void *object, unsigned int type);
 
 
 
@@ -85,6 +73,22 @@ typedef struct
   DisC_callback_t voice_state_update;
   DisC_callback_t voice_server_update;
 } DisC_callbacks_t;
+
+typedef struct{
+  char *token;
+  DisC_BOOL_t clientType;
+  short logLevel;
+  const char *internalName;//used for identifying what session is which in logs. Just for fun
+  const char *logFileLocation;
+  //lib handles the rest of these
+  DisC_sessionID_t DONOTSET_id;
+  unsigned short DONOTSET_currentError;
+  SSL_CTX *DONOTSET_rest_ctx;
+  BIO *DONOTSET_rest_bio;
+  SSL_CTX *DONOTSET_gateway_ctx;
+  BIO *DONOTSET_gateway_bio;
+  DisC_callbacks_t *DONOTSET_callbacks;
+} DisC_session_t;
 
 //discord objects------------------------------------------
 

@@ -15,10 +15,6 @@
 #include "DisC_object.h"
 #include "DisC_rest.h"
 
-const char *hostname = "discordapp.com:https";
-const char *host = "discordapp.com";
-const char *apiBase = "/api/v6";
-
 //TODO make an actual REST request function
 
 char *internal_UnChunk(DisC_session_t *session, char *str);
@@ -136,7 +132,7 @@ char *internal_GenerateHeaders(DisC_session_t *session, char *url, char *httpAct
   if(strcmp(httpAction, "GET") == 0 || strcmp(httpAction, "DELETE") == 0)
   {
     //otherwise just set the %s to nothing
-    DisC_asprintf(&final, base, httpAction, url, host, session->clientType ? "Bot " : "", session->token, DISC_VER_MAJOR, DISC_VER_MINOR, DISC_VER_REVISION, session->internalName, "", "");
+    DisC_asprintf(&final, base, httpAction, url, DISC_REST_HOST, session->clientType ? "Bot " : "", session->token, DISC_VER_MAJOR, DISC_VER_MINOR, DISC_VER_REVISION, session->internalName, "", "");
   }
   else
   {
@@ -147,7 +143,7 @@ char *internal_GenerateHeaders(DisC_session_t *session, char *url, char *httpAct
     //}
     //else
     //{
-    DisC_asprintf(&final, base, httpAction, url, host, session->clientType ? "Bot " : "", session->token, DISC_VER_MAJOR, DISC_VER_MINOR, DISC_VER_REVISION, session->internalName, "Content-Type: %s\r\nContent-Length: %lu\r\n", "%s");
+    DisC_asprintf(&final, base, httpAction, url, DISC_REST_HOST, session->clientType ? "Bot " : "", session->token, DISC_VER_MAJOR, DISC_VER_MINOR, DISC_VER_REVISION, session->internalName, "Content-Type: %s\r\nContent-Length: %lu\r\n", "%s");
     //}
 
     //printf("%s\n", final);
@@ -316,7 +312,7 @@ short DisC_REST_ReconnectSession(DisC_session_t *session)
     {
       reconnNum++;
     }
-    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Reconnecting to %s..", host);
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Reconnecting to %s..", DISC_REST_HOST);
     sleep(DISC_RECONNECT_DELAY);
     if(reconnNum == DISC_MAX_RECONNECTS)
     {
@@ -331,15 +327,15 @@ short DisC_REST_ReconnectSession(DisC_session_t *session)
   //fix state stuff if needed
 }
 
-short DisC_REST_InitSession(DisC_session_t *session)
+short DisC_REST_InitSession(DisC_session_t *session)//TODO set a timeout
 {
   //set the session ssl context to TLS 1.2
-  DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Connecting to %s...", host);
+  DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Connecting to %s...", DISC_REST_HOST);
   session->DONOTSET_rest_ctx = SSL_CTX_new(TLSv1_2_client_method());
 
 
   session->DONOTSET_rest_bio = BIO_new_ssl_connect(session->DONOTSET_rest_ctx);
-  BIO_set_conn_hostname(session->DONOTSET_rest_bio, hostname);
+  BIO_set_conn_hostname(session->DONOTSET_rest_bio, DISC_REST_HOSTNAME);
 
   //connect
   if(BIO_do_connect(session->DONOTSET_rest_bio) <= 0)
@@ -359,7 +355,7 @@ short DisC_REST_InitSession(DisC_session_t *session)
 
 short DisC_REST_DestroySession(DisC_session_t *session)
 {
-  DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Disconnecting from %s...", host);
+  DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Disconnecting from %s...", DISC_REST_HOST);
   BIO_free_all(session->DONOTSET_rest_bio);
   SSL_CTX_free(session->DONOTSET_rest_ctx);
 
@@ -403,10 +399,15 @@ short DisC_REST_DiscordHTTPRequest(DisC_session_t *session, char **returnBody, u
 
   *returnCode = internal_GetHTTPResponseCode(session, callocRequest);
 
+  *returnBodyLen = internalRecieveLen;
+
   if(*returnBody == NULL)//then its content length
   {
     *returnBody = DisC_strmkdup(strstr(callocRequest, "\r\n\r\n") + strlen("\r\n\r\n"));
   }
+
+
+
 
   free(request);
   free(recieve);
@@ -428,7 +429,7 @@ short DisC_REST_GetChannel(DisC_session_t *session, DisC_snowflake_t channelId, 
   unsigned long readDataLen = 0;
   DisC_channel_t *channelInternal = NULL;
 
-  DisC_asprintf(&url, "%s/channels/%s", apiBase, channelId);
+  DisC_asprintf(&url, "%s/channels/%s", DISC_REST_APIBASE, channelId);
   DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "GET", NULL, url, NULL, 0);
 
   json_t *retRoot = NULL;
@@ -513,7 +514,7 @@ short DisC_REST_ModifyChannel(DisC_session_t *session, DisC_snowflake_t channelI
 
   //===================================================================
 
-  DisC_asprintf(&url, "%s/channels/%s", apiBase, channelId);
+  DisC_asprintf(&url, "%s/channels/%s", DISC_REST_APIBASE, channelId);
   DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "PUT", "application/json", url, json_dumps(root, 0), strlen(json_dumps(root, 0)));
 
 
@@ -554,7 +555,7 @@ short DisC_REST_DeleteChannel(DisC_session_t *session, DisC_snowflake_t channelI
   char *readData = NULL;
   unsigned long readDataLen = 0;
 
-  DisC_asprintf(&url, "%s/channels/%s", apiBase, channelId);
+  DisC_asprintf(&url, "%s/channels/%s", DISC_REST_APIBASE, channelId);
 
   DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "DELETE", NULL, url, NULL, 0);
 
@@ -614,7 +615,7 @@ short DisC_REST_GetChannelMessages(DisC_session_t *session, DisC_snowflake_t cha
 
 
   //DisC_asprintf(&queryString, "?around=%s&before=%s&after=%s&limit=%d", around, before, after, limit);
-  DisC_asprintf(&url, "%s/channels/%s/messages%s", apiBase, channelId, queryString);
+  DisC_asprintf(&url, "%s/channels/%s/messages%s", DISC_REST_APIBASE, channelId, queryString);
 
   DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "GET", NULL, url, NULL, 0);
 
@@ -696,7 +697,7 @@ short DisC_REST_GetChannelMessage(DisC_session_t *session, DisC_snowflake_t chan
   unsigned long readDataLen = 0;
   DisC_message_t *messageInternal = NULL;
 
-  DisC_asprintf(&url, "%s/channels/%s/messages/%s", apiBase, channelId, messageId);
+  DisC_asprintf(&url, "%s/channels/%s/messages/%s", DISC_REST_APIBASE, channelId, messageId);
   DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "GET", NULL, url, NULL, 0);
 
 
@@ -773,7 +774,7 @@ short DisC_REST_CreateMessage(DisC_session_t *session, DisC_snowflake_t channelI
 
   //===================================================================
 
-  DisC_asprintf(&url, "%s/channels/%s/messages", apiBase, channelId);
+  DisC_asprintf(&url, "%s/channels/%s/messages", DISC_REST_APIBASE, channelId);
   if(fileData != NULL)
   {
     DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "POST", "multipart/form-data", url, json_dumps(root, 0), strlen(json_dumps(root, 0)));

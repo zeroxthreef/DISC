@@ -7,6 +7,10 @@ extern "C" {
 
 #include "DisC_types.h"
 
+#define DISC_REST_HOSTNAME "discordapp.com:https" //hostname
+#define DISC_REST_HOST "discordapp.com" //host
+#define DISC_REST_APIBASE "/api/v6" //apiBase
+
 short DisC_REST_Init();
 
 short DisC_REST_ReconnectSession(DisC_session_t *session);
