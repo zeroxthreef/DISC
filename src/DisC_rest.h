@@ -15,17 +15,19 @@ short DisC_REST_InitSession(DisC_session_t *session);
 
 short DisC_REST_DestroySession(DisC_session_t *session);
 
+short DisC_REST_DiscordHTTPRequest(DisC_session_t *session, char **returnBody, unsigned long *returnBodyLen, char **returnCode, char *method, char *mime, char *URI, char *data, unsigned long datalen);
+
 //==============================================================
 
-short DisC_REST_GetChannel(DisC_session_t *session, DisC_snowflake_t channelId, DisC_channel_t *channel);
+short DisC_REST_GetChannel(DisC_session_t *session, DisC_snowflake_t channelId, DisC_channel_t **channel);
 
 short DisC_REST_ModifyChannel(DisC_session_t *session, DisC_snowflake_t channelId, char *name, int position, char *topic, DisC_BOOL_t nsfw, int bitrate, int userLimit, DisC_overwrite_t *overwrites, DisC_snowflake_t parentId);
 
 short DisC_REST_DeleteChannel(DisC_session_t *session, DisC_snowflake_t channelId);
 
-short DisC_REST_GetChannelMessages(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t around, DisC_snowflake_t before, DisC_snowflake_t after, int limit, DisC_message_t *messages);
+short DisC_REST_GetChannelMessages(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t around, DisC_snowflake_t before, DisC_snowflake_t after, int limit, DisC_message_t **messages, unsigned long *messageNum);
 
-short DisC_REST_GetChannelMessage(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId, DisC_message_t *message);
+short DisC_REST_GetChannelMessage(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId, DisC_message_t **message);
 
 short DisC_REST_CreateMessage(DisC_session_t *session, DisC_snowflake_t channelId, char *content, DisC_snowflake_t nonce, DisC_BOOL_t tts, unsigned char *fileData, unsigned long fileDataLen, DisC_embed_t *embed);
 

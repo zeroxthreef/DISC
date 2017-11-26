@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
+#include <ctype.h>
 
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
@@ -11,12 +12,16 @@
 #include "DisC_types.h"
 #include "DisC_util.h"
 #include "DisC_errors.h"
+#include "DisC_object.h"
 #include "DisC_rest.h"
 
 const char *hostname = "discordapp.com:https";
 const char *host = "discordapp.com";
 const char *apiBase = "/api/v6";
 
+//TODO make an actual REST request function
+
+char *internal_UnChunk(DisC_session_t *session, char *str);
 
 char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str);
 
@@ -27,6 +32,76 @@ unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *dataLen
 short internal_WriteData(DisC_session_t *session, unsigned char *data, unsigned long dataLen);
 
 //======================================================================================
+
+char *internal_UnChunk(DisC_session_t *session, char *str)
+{
+  char *returnStr = NULL;
+  char *returnStrFinal = NULL;
+  char *start = strstr(str, "\r\n\r\n");
+  start += strlen("\r\n\r\n");
+  char *scanStr = DisC_strmkdup(start);
+  char *chunkToken = scanStr;
+  DisC_BOOL_t foundChunkLen = DISC_FALSE;
+  long chunkLen = 0;
+  long chunkCount = 0;
+  DisC_BOOL_t canExit = 0;
+
+
+  if(strstr(str, "Transfer-Encoding") != NULL)
+  {
+    strtok(chunkToken, "\r\n");
+    //printf("Token: %s\n", chunkToken);
+    chunkLen = strtol(chunkToken, NULL, 16);
+    foundChunkLen = DISC_TRUE;
+
+
+    if(chunkLen > 0)
+    {
+      //returnStr = malloc(size_t __size)
+      while((chunkToken = strtok(NULL, "\r\n")) != NULL && !canExit)
+      {
+        if(foundChunkLen)//if it found the num of chunk length, set up the body stuff
+        {
+          if((returnStr = realloc(returnStr, (chunkCount + chunkLen) * sizeof(char))) != NULL)
+          {
+            memmove(returnStr + chunkCount, chunkToken, chunkLen);
+            chunkCount += chunkLen;
+            foundChunkLen = DISC_FALSE;
+          }
+          else
+            exit(1);
+        }
+        else
+        {
+          chunkLen = strtol(chunkToken, NULL, 16);
+          if(chunkLen == 0)
+          {
+            canExit = 1;
+          }
+          foundChunkLen = DISC_TRUE;
+        }
+        //printf("Token: %s\n", chunkToken);
+      }
+
+      returnStrFinal = calloc(chunkCount + 1, sizeof(char));
+      if(returnStrFinal == NULL)
+        exit(1);
+
+      memmove(returnStrFinal, returnStr, chunkCount);
+    }
+
+    //printf("Final: %s\n", returnStrFinal);
+    free(scanStr);
+    return returnStrFinal;
+  }
+  else
+  {
+    free(scanStr);
+    return NULL;
+  }
+
+
+}
 
 char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str)
 {
@@ -56,7 +131,7 @@ char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str)
 char *internal_GenerateHeaders(DisC_session_t *session, char *url, char *httpAction, const char *contentType, unsigned long contentLength)
 {
   char *final = NULL;
-  char *base = "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nAuthorization: %s%s\r\nUser-Agent: DisC v%d.%d.%d: %s\r\n%s\r\n%s";
+  char *base = "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nAuthorization: %s%s\r\nUser-Agent: (so sorry for not obeying rate limiting. Nearly at the point that I can add it)DisC v%d.%d.%d: %s\r\n%s\r\n%s";
 
   if(strcmp(httpAction, "GET") == 0 || strcmp(httpAction, "DELETE") == 0)
   {
@@ -66,7 +141,15 @@ char *internal_GenerateHeaders(DisC_session_t *session, char *url, char *httpAct
   else
   {
     //add a mime type and content length:
+    //if(strcmp(httpAction, "GETQS") == 0)
+    //{
+      //DisC_asprintf(&final, base, "GET", url, host, session->clientType ? "Bot " : "", session->token, DISC_VER_MAJOR, DISC_VER_MINOR, DISC_VER_REVISION, session->internalName, "Content-Type: %s\r\nContent-Length: %lu\r\n", "%s");
+    //}
+    //else
+    //{
     DisC_asprintf(&final, base, httpAction, url, host, session->clientType ? "Bot " : "", session->token, DISC_VER_MAJOR, DISC_VER_MINOR, DISC_VER_REVISION, session->internalName, "Content-Type: %s\r\nContent-Length: %lu\r\n", "%s");
+    //}
+
     //printf("%s\n", final);
     DisC_asprintf(&final, final, contentType, contentLength, "%s");
     //printf("%s\n", final);
@@ -140,23 +223,28 @@ unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *dataLen
     if(isChunked == 1)
     {
       //printf("Detecting chunk...\n");
-      if(strstr(buffer, "\r\n0\r\n"))
+      char *tempScanBuffer = calloc(byteCount + 1, sizeof(char));
+      memmove(tempScanBuffer, buffer, byteCount);
+      if(strstr(tempScanBuffer, "\r\n0\r\n\r\n"))
       {
-        BIO_read(session->DONOTSET_rest_bio, NULL, strlen("0\r\n\r\n"));
+        //BIO_read(session->DONOTSET_rest_bio, NULL, strlen("0\r\n\r\n"));
+        //printf("Found end of chunk: %d\n", status);
         chunkedCanExit = 1;
       }
-
+      free(tempScanBuffer);
     }
     else if(contentLength > 0)
     {
       if(strstr(buffer, "\r\n\r\n") != NULL)
       {
+        char *tempScanBuffer = calloc(byteCount + 1, sizeof(char));
+        memmove(tempScanBuffer, buffer, byteCount);
         //printf("found end of headers\n");
-        char *marked = strstr(buffer, "\r\n\r\n");
+        char *marked = strstr(tempScanBuffer, "\r\n\r\n");
         unsigned long i;
         for(i = 0; i < byteCount; i++)
         {
-          if(&buffer[i] == marked)
+          if(&tempScanBuffer[i] == marked)
           {
 
             i += strlen("\r\n\r\n");
@@ -174,11 +262,11 @@ unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *dataLen
 
           }
         }
+        free(tempScanBuffer);
       }
     }
 
   } while(status > 0 && chunkedCanExit == 0);
-
 
 
   //buffer[byteCount] = '\0';//not always going to be text data. Set in rest functions
@@ -279,77 +367,82 @@ short DisC_REST_DestroySession(DisC_session_t *session)
   return DISC_ERROR_NONE;
 }
 
-//=============================================================================================================================================
-
-short DisC_REST_GetChannel(DisC_session_t *session, DisC_snowflake_t channelId, DisC_channel_t *channel)
+short DisC_REST_DiscordHTTPRequest(DisC_session_t *session, char **returnBody, unsigned long *returnBodyLen, char **returnCode, char *method, char *mime, char *URI, char *data, unsigned long datalen)
 {
-  DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Getting channel");
-  short returnval;
-  char *base = NULL;
-  char *url = NULL;
-  char *readData = NULL;
-  unsigned long readDataLen = 0;
+  char *request = NULL;
+  char *recieve = NULL;
+  char *callocRequest = NULL;
 
-  DisC_asprintf(&url, "%s/channels/%s", apiBase, channelId);
-  base = internal_GenerateHeaders(session, url, "GET", NULL, 0);
+  unsigned long internalRecieveLen = 0;
 
-  //printf("%s\n", base);
+  if(strcmp(method, "GET") == 0 && strcmp(method, "DELETE") == 0)
+  {
+    request = internal_GenerateHeaders(session, URI, method, NULL, 0);
+  }
+  else
+  {
+    request = internal_GenerateHeaders(session, URI, method, mime, datalen);
+    DisC_asprintf(&request, request, data);
+  }
 
-  internal_WriteData(session, base, strlen(base));
-  readData = internal_ReadData(session, &readDataLen);
+  do
+  {
+    internal_WriteData(session, request, strlen(request));
+    recieve = internal_ReadData(session, &internalRecieveLen);
+  }
+  while(recieve == NULL);
 
-  //json stuff
-  //printf("%s\n", readData);
-
-  char *finalData = malloc(readDataLen + 1);//turn it into a string
-  if(finalData == NULL)
+  callocRequest = malloc(internalRecieveLen + 1);//turn it into a string
+  if(callocRequest == NULL)
   {
     exit(1);
   }
-  memmove(finalData, readData, readDataLen);
-  //finalData[readDataLen + 1] = 0x00;//terminate string
-  finalData[readDataLen] = 0x00;//terminate string
+  memmove(callocRequest, recieve, internalRecieveLen);
+
+  *returnBody = internal_UnChunk(session, callocRequest);
+
+  *returnCode = internal_GetHTTPResponseCode(session, callocRequest);
+
+  if(*returnBody == NULL)//then its content length
+  {
+    *returnBody = DisC_strmkdup(strstr(callocRequest, "\r\n\r\n") + strlen("\r\n\r\n"));
+  }
+
+  free(request);
+  free(recieve);
+  free(callocRequest);
+
+  DisC_AddError(session, DISC_ERROR_NONE);
+  return DISC_ERROR_NONE;
+}
+
+//=============================================================================================================================================
+
+short DisC_REST_GetChannel(DisC_session_t *session, DisC_snowflake_t channelId, DisC_channel_t **channel)
+{
+  DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Getting channel");
+  short returnval;
+  char *url = NULL;
+  char *code = NULL;
+  char *readData = NULL;
+  unsigned long readDataLen = 0;
+  DisC_channel_t *channelInternal = NULL;
+
+  DisC_asprintf(&url, "%s/channels/%s", apiBase, channelId);
+  DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "GET", NULL, url, NULL, 0);
 
   json_t *retRoot = NULL;
 
-  char *code = internal_GetHTTPResponseCode(session, finalData);
 
   //============================================
 
   if(strcmp(code, "200") == 0)
   {
-    char *responseJson = strstr(finalData, "\r\n\r\n");
-    responseJson += strlen("\r\n\r\n");
-    responseJson = strstr(responseJson, "\r\n");
-    responseJson += strlen("\r\n");
-    char *endResponseJson = strstr(responseJson, "\r\n");
-    *endResponseJson = 0x00;
-    //printf("1[%s]\n\n", responseJson);
+    channelInternal = DisC_object_GenerateChannel(session, readData);
 
-    if(responseJson != NULL)
+    if(channelInternal != NULL)
     {
-      printf("Parsing JSON\n");
-      retRoot = json_loads(responseJson, 0, NULL);
-
-      channel->id = DisC_strmkdup(json_string_value(json_object_get(retRoot, "id")));
-      channel->type = json_integer_value(json_object_get(retRoot, "type"));
-      channel->guild_id = DisC_strmkdup(json_string_value(json_object_get(retRoot, "guild_id")));
-      channel->position = json_integer_value(json_object_get(retRoot, "position"));
-      //TODO OVERWRITE ARRAY OBJECTS
-      channel->name = DisC_strmkdup(json_string_value(json_object_get(retRoot, "name")));
-      channel->topic = DisC_strmkdup(json_string_value(json_object_get(retRoot, "topic")));
-      channel->isNsfw = json_integer_value(json_object_get(retRoot, "nsfw"));
-      channel->last_message_id = DisC_strmkdup(json_string_value(json_object_get(retRoot, "last_message_id")));
-      channel->bitrate = json_integer_value(json_object_get(retRoot, "bitrate"));
-      channel->user_limit = json_integer_value(json_object_get(retRoot, "user_limit"));
-      //TODO recipients
-      channel->icon = DisC_strmkdup(json_string_value(json_object_get(retRoot, "icon")));
-      channel->owner_id = DisC_strmkdup(json_string_value(json_object_get(retRoot, "owner_id")));
-      channel->application_id = DisC_strmkdup(json_string_value(json_object_get(retRoot, "application_id")));
-      channel->parent_id = DisC_strmkdup(json_string_value(json_object_get(retRoot, "parent_id")));
-      channel->last_pin_timestamp = DisC_strmkdup(json_string_value(json_object_get(retRoot, "last_pin_timestamp")));
-
-      //json_decref(retRoot);//It doesnt like to free stuff???
+      *channel = channelInternal;
 
       DisC_AddError(session, DISC_ERROR_NONE);
       returnval = DISC_ERROR_NONE;
@@ -369,17 +462,15 @@ short DisC_REST_GetChannel(DisC_session_t *session, DisC_snowflake_t channelId, 
     returnval = DISC_ERROR_PERMISSIONS;
   }
   else{
-    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, strstr(finalData, "\r\n\r\n"));
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, readData);
     DisC_AddError(session, DISC_ERROR_GENERIC);
     returnval = DISC_ERROR_GENERIC;
   }
 
 
-  //free(code);
-  //free(finalData);
-  //free(readData);
-  //free(base);
-  //free(url);
+  free(code);
+  free(readData);
+  free(url);
 
   return returnval;
 }
@@ -388,9 +479,8 @@ short DisC_REST_ModifyChannel(DisC_session_t *session, DisC_snowflake_t channelI
 {
   DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Modifying channel");
   short returnval;
-  char *base = NULL;
   char *url = NULL;
-  char *final = NULL;
+  char *code = NULL;
   char *readData = NULL;
   unsigned long readDataLen = 0;
 
@@ -424,27 +514,7 @@ short DisC_REST_ModifyChannel(DisC_session_t *session, DisC_snowflake_t channelI
   //===================================================================
 
   DisC_asprintf(&url, "%s/channels/%s", apiBase, channelId);
-  base = internal_GenerateHeaders(session, url, "PUT", "application/json", strlen(json_dumps(root, 0)));
-
-
-  DisC_asprintf(&final, base, json_dumps(root, 0));
-
-  //printf("[[%s]]\n", final);
-
-  internal_WriteData(session, final, strlen(final));
-  readData = internal_ReadData(session, &readDataLen);
-
-  char *finalData = malloc(readDataLen + 1);//turn it into a string
-  if(finalData == NULL)
-  {
-    exit(1);
-  }
-  memmove(finalData, readData, readDataLen);
-  //finalData[readDataLen + 1] = 0x00;//terminate string
-  finalData[readDataLen] = 0x00;//terminate string
-
-
-  char *code = internal_GetHTTPResponseCode(session, finalData);
+  DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "PUT", "application/json", url, json_dumps(root, 0), strlen(json_dumps(root, 0)));
 
 
   //============================================
@@ -461,7 +531,7 @@ short DisC_REST_ModifyChannel(DisC_session_t *session, DisC_snowflake_t channelI
     returnval = DISC_ERROR_PERMISSIONS;
   }
   else{
-    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, strstr(finalData, "\r\n\r\n"));
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, readData);
     DisC_AddError(session, DISC_ERROR_GENERIC);
     returnval = DISC_ERROR_GENERIC;
   }
@@ -470,9 +540,6 @@ short DisC_REST_ModifyChannel(DisC_session_t *session, DisC_snowflake_t channelI
   json_decref(root);
   free(code);
   free(url);
-  free(finalData);
-  free(final);
-  free(base);
   free(readData);
 
   return returnval;
@@ -482,31 +549,14 @@ short DisC_REST_DeleteChannel(DisC_session_t *session, DisC_snowflake_t channelI
 {
   DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Deleting channel");
   short returnval;
-  char *base = NULL;
   char *url = NULL;
+  char *code = NULL;
   char *readData = NULL;
   unsigned long readDataLen = 0;
 
   DisC_asprintf(&url, "%s/channels/%s", apiBase, channelId);
-  base = internal_GenerateHeaders(session, url, "DELETE", NULL, 0);
 
-
-
-  //printf("[[%s]]\n", base);
-
-  internal_WriteData(session, base, strlen(base));
-  readData = internal_ReadData(session, &readDataLen);
-
-  char *finalData = malloc(readDataLen + 1);//turn it into a string
-  if(finalData == NULL)
-  {
-    exit(1);
-  }
-  memmove(finalData, readData, readDataLen);
-  //finalData[readDataLen + 1] = 0x00;//terminate string
-  finalData[readDataLen] = 0x00;//terminate string
-
-  char *code = internal_GetHTTPResponseCode(session, finalData);
+  DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "DELETE", NULL, url, NULL, 0);
 
 
   //============================================
@@ -523,7 +573,7 @@ short DisC_REST_DeleteChannel(DisC_session_t *session, DisC_snowflake_t channelI
     returnval = DISC_ERROR_PERMISSIONS;
   }
   else{
-    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, strstr(finalData, "\r\n\r\n"));
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, readData);
     DisC_AddError(session, DISC_ERROR_GENERIC);
     returnval = DISC_ERROR_GENERIC;
   }
@@ -531,33 +581,174 @@ short DisC_REST_DeleteChannel(DisC_session_t *session, DisC_snowflake_t channelI
   //free everything==================================================
   free(code);
   free(url);
-  free(finalData);
-  free(base);
   free(readData);
 
   return returnval;
 }
 
-short DisC_REST_GetChannelMessages(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t around, DisC_snowflake_t before, DisC_snowflake_t after, int limit, DisC_message_t *messages)
+short DisC_REST_GetChannelMessages(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t around, DisC_snowflake_t before, DisC_snowflake_t after, int limit, DisC_message_t **messages, unsigned long *messageNum)
 {
   DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Getting channel messages");
+  short returnval;
+  char *queryString = NULL;
+  char *url = NULL;
+  char *readData = NULL;
+  char *code = NULL;
+  unsigned long readDataLen = 0;
+
+  DisC_message_t *messagesInternal = NULL;
+
+
+  DisC_asprintf(&queryString, "?");
+  if(around != NULL)
+    DisC_asprintf(&queryString, "%saround=%s", queryString, around);
+
+  if(before != NULL)
+    DisC_asprintf(&queryString, "%sbefore=%s", queryString, before);
+
+  if(after != NULL)
+    DisC_asprintf(&queryString, "%safter=%s", queryString, after);
+
+  if(limit > 0)//from discord docs: "	max number of messages to return (1-100)" so 0 should be good for setting to nothing
+    DisC_asprintf(&queryString, "%s&limit=%d", queryString, limit);
+
+
+  //DisC_asprintf(&queryString, "?around=%s&before=%s&after=%s&limit=%d", around, before, after, limit);
+  DisC_asprintf(&url, "%s/channels/%s/messages%s", apiBase, channelId, queryString);
+
+  DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "GET", NULL, url, NULL, 0);
+
+  //json stuff
+  json_t *retRoot = NULL;
+  //============================================
+
+  if(strcmp(code, "200") == 0)
+  {
+
+    if(readData != NULL)
+    {
+      //printf("Parsing JSON\n");
+      unsigned long i;
+      retRoot = json_loads(readData, 0, NULL);
+
+      //printf("JSON: %s\n", json_dumps(retRoot, JSON_INDENT(2)));
+      //TODO count array elements and allocate a list of messages based on array size
+
+      messagesInternal = calloc(json_array_size(retRoot), sizeof(DisC_message_t));
+      if(messagesInternal == NULL)
+        exit(1);
+
+      for(i = 0; i < json_array_size(retRoot); i++)
+      {
+        //printf("%s\n", json_dumps(json_array_get(retRoot, i), 0));
+        DisC_message_t *messageInternal = DisC_object_GenerateMessage(session, json_dumps(json_array_get(retRoot, i), 0));
+        //messagesInternal[i] = *messageInternal;
+        //printf("%s\n", messageInternal->content);
+        //memmove(&messagesInternal[i], messageInternal, sizeof(DisC_message_t));
+        messagesInternal[i] = *messageInternal;
+        //printf("%s\n", messagesInternal[i].content);
+        free(messageInternal);//TODO actually delete it properly
+      }
+      //set stuff
+      *messageNum = json_array_size(retRoot);
+      *messages = messagesInternal;
+
+      //printf("last test: %s\n", messages[i]->content);
+
+      DisC_AddError(session, DISC_ERROR_NONE);
+      returnval = DISC_ERROR_NONE;
+    }
+    else
+    {
+      DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_ERROR, "Failed to parse JSON");
+      DisC_AddError(session, DISC_ERROR_MEMORY);
+      returnval = DISC_ERROR_MEMORY;
+    }
+
+  }
+  else if(strcmp(code, "401") == 0)
+  {
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "Insufficient permissions for action");
+    DisC_AddError(session, DISC_ERROR_PERMISSIONS);
+    returnval = DISC_ERROR_PERMISSIONS;
+  }
+  else{
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, readData);
+    DisC_AddError(session, DISC_ERROR_GENERIC);
+    returnval = DISC_ERROR_GENERIC;
+  }
+  json_decref(retRoot);
+  free(queryString);
+  free(code);
+  free(readData);
+  free(url);
+
+  return returnval;
 }
 
-short DisC_REST_GetChannelMessage(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId, DisC_message_t *message)
+short DisC_REST_GetChannelMessage(DisC_session_t *session, DisC_snowflake_t channelId, DisC_snowflake_t messageId, DisC_message_t **message)
 {
   DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Getting channel message");
+  short returnval;
+  char *url = NULL;
+  char *code = NULL;
+  char *readData = NULL;
+  unsigned long readDataLen = 0;
+  DisC_message_t *messageInternal = NULL;
+
+  DisC_asprintf(&url, "%s/channels/%s/messages/%s", apiBase, channelId, messageId);
+  DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "GET", NULL, url, NULL, 0);
+
+
+  //============================================
+
+  if(strcmp(code, "200") == 0)
+  {
+    messageInternal = DisC_object_GenerateMessage(session, readData);
+
+    if(messageInternal != NULL)
+    {
+      *message = messageInternal;
+
+      DisC_AddError(session, DISC_ERROR_NONE);
+      returnval = DISC_ERROR_NONE;
+    }
+    else
+    {
+      DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_ERROR, "Failed to parse JSON");
+      DisC_AddError(session, DISC_ERROR_MEMORY);
+      returnval = DISC_ERROR_MEMORY;
+    }
+
+  }
+  else if(strcmp(code, "401") == 0)
+  {
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "Insufficient permissions for action");
+    DisC_AddError(session, DISC_ERROR_PERMISSIONS);
+    returnval = DISC_ERROR_PERMISSIONS;
+  }
+  else{
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, readData);
+    DisC_AddError(session, DISC_ERROR_GENERIC);
+    returnval = DISC_ERROR_GENERIC;
+  }
+
+
+  free(code);
+  free(readData);
+  free(url);
+
+  return returnval;
 }
 
 short DisC_REST_CreateMessage(DisC_session_t *session, DisC_snowflake_t channelId, char *content, DisC_snowflake_t nonce, DisC_BOOL_t tts, unsigned char *fileData, unsigned long fileDataLen, DisC_embed_t *embed)//get channel id and add parameters
 {
   DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Creating message");
-  short returnval;
-  char *base = NULL;
   char *url = NULL;
-  char *final = NULL;
-
   char *readData = NULL;
+  char *code = NULL;
   unsigned long readDataLen = 0;
+  short returnval;
 
   json_t *root = json_object();
 
@@ -582,36 +773,16 @@ short DisC_REST_CreateMessage(DisC_session_t *session, DisC_snowflake_t channelI
 
   //===================================================================
 
-  //DisC_asprintf(&url, "%s/channels/%"PRIu64"/messages", apiBase, channelId);
   DisC_asprintf(&url, "%s/channels/%s/messages", apiBase, channelId);
   if(fileData != NULL)
   {
-    base = internal_GenerateHeaders(session, url, "POST", "multipart/form-data", strlen(json_dumps(root, 0)));
+    DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "POST", "multipart/form-data", url, json_dumps(root, 0), strlen(json_dumps(root, 0)));
+    //TODO make it have the parts when sending files
   }
   else
   {
-    base = internal_GenerateHeaders(session, url, "POST", "application/json", strlen(json_dumps(root, 0)));
+    DisC_REST_DiscordHTTPRequest(session, &readData, &readDataLen, &code, "POST", "application/json", url, json_dumps(root, 0), strlen(json_dumps(root, 0)));
   }
-
-  DisC_asprintf(&final, base, json_dumps(root, 0));
-
-  internal_WriteData(session, final, strlen(final));
-  readData = internal_ReadData(session, &readDataLen);
-
-
-  char *finalData = malloc(readDataLen + 1);//turn it into a string
-  if(finalData == NULL)
-  {
-    exit(1);
-  }
-  memmove(finalData, readData, readDataLen);
-  //finalData[readDataLen + 1] = 0x00;//terminate string
-  finalData[readDataLen] = 0x00;//terminate string
-
-
-  char *code = internal_GetHTTPResponseCode(session, finalData);
-
-
   //============================================
 
   if(strcmp(code, "200") == 0)
@@ -626,7 +797,7 @@ short DisC_REST_CreateMessage(DisC_session_t *session, DisC_snowflake_t channelI
     returnval = DISC_ERROR_PERMISSIONS;
   }
   else{
-    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, strstr(finalData, "\r\n\r\n"));
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_WARNING, "HTTP error: %s: %s", code, readData);
     DisC_AddError(session, DISC_ERROR_GENERIC);
     returnval = DISC_ERROR_GENERIC;
   }
@@ -634,11 +805,8 @@ short DisC_REST_CreateMessage(DisC_session_t *session, DisC_snowflake_t channelI
   //free everything==================================================
   json_decref(root);
   free(code);
-  free(base);
   free(url);
-  free(final);
   free(readData);
-  free(finalData);
 
   return returnval;
 }

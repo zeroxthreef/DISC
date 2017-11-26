@@ -11,11 +11,14 @@ extern "C" {
 
 #define DISC_RECONNECT_DELAY 10//number of seconds to wait before reconnecting
 #define DISC_MAX_RECONNECTS -1//-1 for infinite, but any other number makes it give up
+#define DISC_MAX_TIMEOUT 200
+#define DISC_SNOWFLAKE_ALLOCSIZE 19
 
 //typedef uint64_t DisC_snowflake_t;
 typedef char* DisC_snowflake_t;
 typedef uint8_t DisC_BOOL_t;
 typedef uint32_t DisC_sessionID_t; //no need for anything larger. No way more than uint sessions will be used ever
+
 
 enum DisC_BOOL_t
 {
@@ -85,6 +88,18 @@ typedef struct
 
 //discord objects------------------------------------------
 
+enum DisC_messageType
+{
+  DISC_MESSAGETYPE_DEFAULT,
+  DISC_MESSAGETYPE_RECIPIENT_ADD,
+  DISC_MESSAGETYPE_RECIPIENT_REMOVE,
+  DISC_MESSAGETYPE_CALL,
+  DISC_MESSAGETYPE_CHANNEL_NAME_CHANGE,
+  DISC_MESSAGETYPE_CHANNEL_ICON_CHANGE,
+  DISC_MESSAGETYPE_CHANNEL_PINNED_MESSAGE,
+  DISC_MESSAGETYPE_GUILD_MEMBER_JOIN
+};
+
 typedef struct
 {
 	DisC_snowflake_t id;
@@ -123,14 +138,14 @@ typedef struct
 	char* proxy_url;
 	int height;
 	int width;
-} DisC_thumbnail_t;
+} DisC_embed_thumbnail_t;
 
 typedef struct
 {
 	char* url;
 	int height;
 	int width;
-} DisC_video_t;
+} DisC_embed_video_t;
 
 typedef struct
 {
@@ -138,13 +153,13 @@ typedef struct
 	char* proxy_url;
 	int height;
 	int width;
-} DisC_image_t;
+} DisC_embed_image_t;
 
 typedef struct
 {
 	char* name;
 	char* url;
-} DisC_provider_t;
+} DisC_embed_provider_t;
 
 typedef struct
 {
@@ -152,14 +167,14 @@ typedef struct
 	char* url;
 	char* icon_url;
 	char* proxy_icon_url;
-} DisC_author_t;
+} DisC_embed_author_t;
 
 typedef struct
 {
 	char* text;
 	char* icon_url;
 	char* proxy_icon_url;
-} DisC_footer_t;
+} DisC_embed_footer_t;
 
 typedef struct
 {
@@ -190,7 +205,7 @@ typedef struct
 	char* name;
 	char* value;
 	int isInline;
-} DisC_field_t;
+} DisC_embed_field_t;
 
 typedef struct
 {
@@ -198,21 +213,23 @@ typedef struct
 	char* type;
 	char* description;
 	char* url;
-	char* date;//lookup this format so it can be parsed
+	char* timestamp;//lookup this format so it can be parsed
 	int color;
-	DisC_footer_t footer;
-	DisC_image_t image;
-	DisC_thumbnail_t thumbnail;
-	DisC_video_t video;
-	DisC_provider_t provider;
-	DisC_author_t author;
-	DisC_field_t *fields; //TODO this is an array. needs to be allocated and freed
+	DisC_embed_footer_t footer;
+	DisC_embed_image_t image;
+	DisC_embed_thumbnail_t thumbnail;
+	DisC_embed_video_t video;
+	DisC_embed_provider_t provider;
+	DisC_embed_author_t author;
+  unsigned long fieldCount;
+	DisC_embed_field_t *fields; //TODO this is an array. needs to be allocated and freed
 } DisC_embed_t;
 
 typedef struct
 {
   DisC_user_t user;
   char *nick;
+  unsigned long roleCount;
   DisC_role_t *roles;
   char *joined_at;//parse this later. Its a datetime
   DisC_BOOL_t deaf;
@@ -235,6 +252,7 @@ typedef struct
 typedef struct
 {
   DisC_user_t user;
+  unsigned long roleCount;
   DisC_snowflake_t *roles;
   DisC_game_t game;
   DisC_snowflake_t guild_id;
@@ -277,8 +295,10 @@ typedef struct
 	int type;//going to be text or voice
 	int position;
 	DisC_BOOL_t isNsfw;
-	DisC_overwrite_t permission_overwrites;
+  unsigned long permOverwritesCount;
+	DisC_overwrite_t *permission_overwrites;
 	char* topic;
+  unsigned long recipientCount;
   DisC_user_t *recipients;
   char *icon;
   DisC_snowflake_t owner_id;
@@ -329,19 +349,25 @@ typedef struct
 	DisC_snowflake_t id;
 	DisC_snowflake_t channel_id;
 	DisC_user_t author;
-	char* content;
-	char* timestamp;
-	char* edited_timestamp;
+	char *content;
+	char *timestamp;
+	char *edited_timestamp;
 	int tts;
 	int mention_everyone;
+  unsigned long mentionCount;
 	DisC_user_t *mentions; //TODO you have to malloc this stuff. Its an array of users
-	DisC_role_t *roles; //TODO same as before
+  unsigned long roleCount;
+	DisC_snowflake_t *roles; //TODO same as before
+  unsigned long attachmentCount;
 	DisC_attachment_t *attatchments; //TODO same as before yet again
+  unsigned long embedCount;
 	DisC_embed_t *embeds; //TODO same
+  unsigned long reactionCount;
 	DisC_reaction_t *reactions; //same again
 	DisC_snowflake_t nonce;
 	int pinned;
 	char* webhook_id;
+  int type;
 } DisC_message_t;
 
 typedef struct
@@ -358,17 +384,24 @@ typedef struct
   DisC_snowflake_t embed_channel_id;
   int verification_level;
   int default_message_notifications;
+  unsigned long roleCount;
   DisC_role_t *roles;
+  unsigned long emojiCount;
   DisC_emoji_t *emojis;
+  unsigned long featureCount;
   //Features *features; //????
   int mfa_level;
   char *joined_at;//this is a datetime. Format this
   DisC_BOOL_t large;
   DisC_BOOL_t unavailable;
   int member_count;
+  unsigned long voiceStateCount;
   DisC_voice_t *voice_states;//array of voice states
+  unsigned long memberCount;
   DisC_member_t *members;//array
+  unsigned long channelCount;
   DisC_channel_t *channels;
+  unsigned long precenceCount;
   DisC_presence_t *presences;
 } DisC_guild_t;
 
