@@ -19,6 +19,11 @@ Also, I'll be changing the name from DISC to DisC in the future.
 * Add everything to work with the gateway and use callbacks
 * Add better thread support
 
+## Plans at version 1.0
+* At version 1.0, all of the REST and gateway functions are implemented.
+* Voice connection comes after 1.0
+* Expect the api to change drastically up until 1.0
+
 ## Thread saftey
 currently, DisC is single threaded and doesnt support threading as far as I know. I will add this in the future.
 

@@ -74,7 +74,8 @@ typedef struct
   DisC_callback_t voice_server_update;
 } DisC_callbacks_t;
 
-typedef struct{
+typedef struct
+{
   char *token;
   DisC_BOOL_t clientType;
   short logLevel;
@@ -82,7 +83,11 @@ typedef struct{
   const char *logFileLocation;
   //lib handles the rest of these
   DisC_sessionID_t DONOTSET_id;
+  u_int64_t DONOTSET_lastGWTick;
+  u_int64_t DONOTSET_lastRESTTick;
+  u_int64_t DONOTSET_lastHeartbeatTick;
   unsigned short DONOTSET_currentError;
+  int DONOTSET_heartbeat_interval;
   SSL_CTX *DONOTSET_rest_ctx;
   BIO *DONOTSET_rest_bio;
   SSL_CTX *DONOTSET_gateway_ctx;
@@ -90,7 +95,40 @@ typedef struct{
   DisC_callbacks_t *DONOTSET_callbacks;
 } DisC_session_t;
 
-//discord objects------------------------------------------
+//discord gateway objects
+enum DisC_event_data_type
+{
+  DISC_EVENTDATA_TYPE_OBJECT,
+  DISC_EVENTDATA_TYPE_INTEGER,
+  DISC_EVENTDATA_TYPE_BOOL
+};
+
+enum DisC_gateway_opcode
+{
+  DISC_OP_DISPATCH,
+  DISC_OP_HEARTBEAT,
+  DISC_OP_IDENTIFY,
+  DISC_OP_STATUS_UPDATE,
+  DISC_OP_VOICE_STATUS_UPDATE,
+  DISC_OP_VOICE_SERVER_PING,
+  DISC_OP_RESUME,
+  DISC_OP_RECONNECT,
+  DISC_OP_REQUEST_GUILD_MEMBERS,
+  DISC_OP_INVALID_SESSION,
+  DISC_OP_HELLO,
+  DISC_OP_HEARTBEAT_ACK
+};
+
+typedef struct
+{
+  int op;
+  int dataType;//"(object, integer, bool)"
+  char *d;//parse json later
+  int s;//"sequence number, used for resuming sessions and heartbeats" OPCODE 0
+  char *t;//"the event name for this payload" OPCODE 0
+} DisC_gateway_payload_t;
+
+//discord REST objects------------------------------------------
 
 enum DisC_messageType
 {

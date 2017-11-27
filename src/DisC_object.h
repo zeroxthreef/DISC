@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+DisC_gateway_payload_t *DisC_object_GenerateGatewayPayload(DisC_session_t *session, char *jsonData);
+
 DisC_channel_t *DisC_object_GenerateChannel(DisC_session_t *session, char *jsonData);
 
 DisC_message_t *DisC_object_GenerateMessage(DisC_session_t *session, char *jsonData);

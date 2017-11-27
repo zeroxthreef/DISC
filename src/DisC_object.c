@@ -8,6 +8,87 @@
 #include "DisC_errors.h"
 #include "DisC_object.h"
 
+DisC_gateway_payload_t *DisC_object_GenerateGatewayPayload(DisC_session_t *session, char *jsonData)
+{
+  DisC_gateway_payload_t *payloadInternal = calloc(1, sizeof(DisC_gateway_payload_t));
+  json_t *root = NULL;
+  json_t *data = NULL;
+
+
+  if(payloadInternal == NULL)
+  {
+    exit(1);
+  }
+
+  if(jsonData != NULL)
+  {
+    root = json_loads(jsonData, 0, NULL);
+
+    payloadInternal->op = json_integer_value(json_object_get(root, "op"));
+    //detecting type
+    if(json_is_object(json_object_get(root, "d")))
+      payloadInternal->dataType = DISC_EVENTDATA_TYPE_OBJECT;
+    if(json_is_integer(json_object_get(root, "d")))
+      payloadInternal->dataType = DISC_EVENTDATA_TYPE_INTEGER;
+    if(json_is_boolean(json_object_get(root, "d")))
+      payloadInternal->dataType = DISC_EVENTDATA_TYPE_BOOL;
+    //================
+    payloadInternal->d = DisC_strmkdup(json_dumps(json_object_get(root, "d"), 0));
+    payloadInternal->s = json_integer_value(json_object_get(root, "s"));
+    payloadInternal->t = DisC_strmkdup(json_string_value(json_object_get(root, "t")));
+    //do the sub object creation
+    /*
+    switch(payloadInternal->op)
+    {
+      case DISC_OP_DISPATCH:
+
+      break;
+      case DISC_OP_HEARTBEAT:
+
+      break;
+      case DISC_OP_IDENTIFY:
+
+      break;
+      case DISC_OP_STATUS_UPDATE:
+
+      break;
+      case DISC_OP_VOICE_STATUS_UPDATE:
+
+      break;
+      case DISC_OP_VOICE_SERVER_PING:
+
+      break;
+      case DISC_OP_RESUME:
+
+      break;
+      case DISC_OP_RECONNECT:
+
+      break;
+      case DISC_OP_REQUEST_GUILD_MEMBERS:
+
+      break;
+      case DISC_OP_INVALID_SESSION:
+
+      break;
+      case DISC_OP_HELLO:
+
+      break;
+      case DISC_OP_HEARTBEAT_ACK:
+
+      break;
+    }
+    */
+
+    json_decref(root);
+
+    return payloadInternal;
+  }
+  else
+  {
+    return NULL;
+  }
+}
+
 DisC_channel_t *DisC_object_GenerateChannel(DisC_session_t *session, char *jsonData)
 {
   DisC_channel_t *channelInternal = calloc(1, sizeof(DisC_channel_t));

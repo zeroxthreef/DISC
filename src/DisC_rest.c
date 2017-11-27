@@ -17,19 +17,19 @@
 
 //TODO make an actual REST request function
 
-char *internal_UnChunk(DisC_session_t *session, char *str);
+static char *internal_UnChunk(DisC_session_t *session, char *str);
 
-char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str);
+static char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str);
 
-char *internal_GenerateHeaders(DisC_session_t *session, char *url, char *httpAction, const char *contentType, unsigned long contentLength);
+static char *internal_GenerateHeaders(DisC_session_t *session, char *url, char *httpAction, const char *contentType, unsigned long contentLength);
 
-unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *dataLen);
+static unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *dataLen);
 
-short internal_WriteData(DisC_session_t *session, unsigned char *data, unsigned long dataLen);
+static short internal_WriteData(DisC_session_t *session, unsigned char *data, unsigned long dataLen);
 
 //======================================================================================
 
-char *internal_UnChunk(DisC_session_t *session, char *str)
+static char *internal_UnChunk(DisC_session_t *session, char *str)
 {
   char *returnStr = NULL;
   char *returnStrFinal = NULL;
@@ -99,7 +99,7 @@ char *internal_UnChunk(DisC_session_t *session, char *str)
 
 }
 
-char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str)
+static char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str)
 {
   //make a temp string to verify the send
   //temporary fix for chunked response still sending data that code later mistakes for the end of headers
@@ -124,7 +124,7 @@ char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str)
   return returnStr;
 }
 
-char *internal_GenerateHeaders(DisC_session_t *session, char *url, char *httpAction, const char *contentType, unsigned long contentLength)
+static char *internal_GenerateHeaders(DisC_session_t *session, char *url, char *httpAction, const char *contentType, unsigned long contentLength)
 {
   char *final = NULL;
   char *base = "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nAuthorization: %s%s\r\nUser-Agent: (so sorry for not obeying rate limiting. Nearly at the point that I can add it)DisC v%d.%d.%d: %s\r\n%s\r\n%s";
@@ -154,7 +154,7 @@ char *internal_GenerateHeaders(DisC_session_t *session, char *url, char *httpAct
   return final;
 }
 
-unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *dataLen)
+static unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *dataLen)
 {
   char *buffer = NULL;
   unsigned long byteCount = 0;
@@ -273,7 +273,7 @@ unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *dataLen
   return buffer;
 }
 
-short internal_WriteData(DisC_session_t *session, unsigned char *data, unsigned long dataLen)
+static short internal_WriteData(DisC_session_t *session, unsigned char *data, unsigned long dataLen)
 {
   while(BIO_write(session->DONOTSET_rest_bio, data, dataLen) <= 0)
   {
