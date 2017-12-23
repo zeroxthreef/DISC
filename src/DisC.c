@@ -14,16 +14,6 @@ DisC_session_t **sessions = NULL;
 unsigned long sessionCount = 0;
 /*===================================================*/
 
-static internal_GenerateUpgradeHeaders(char *url, char *host)
-{
-  char *finalString;
-  //TODO finish this
-
-  return finalString;
-}
-
-//======================================
-
 short DisC_InitLibrary()
 {
   DisC_REST_Init();
@@ -49,6 +39,7 @@ short DisC_CreateSession(DisC_session_t *session, DisC_callbacks_t *callbacks)
 
 
   //TODO add session to array of sessions
+  //TODO add callbacks to array of callbacks
 
   if(sessionCount == 0)
   {
@@ -111,13 +102,15 @@ short DisC_StartAllSessions()
     {
       DisC_gateway_ListenAndManage(sessions[i]);
     }
-    
+
     #ifdef _WIN32
     Sleep(500);//TODO do this right
     #else
     nanosleep(&req, NULL);
     #endif
 
+
+    //call a post loop function
   }
 
   return DISC_ERROR_NONE;

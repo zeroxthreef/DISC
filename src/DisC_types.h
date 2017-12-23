@@ -34,10 +34,32 @@ enum DisC_accountTypes
 };
 
 
+typedef struct
+{
+  char *token;
+  DisC_BOOL_t clientType;
+  short logLevel;
+  const char *internalName;//used for identifying what session is which in logs. Just for fun
+  const char *logFileLocation;
+  //lib handles the rest of these
+  DisC_sessionID_t DONOTSET_id;
+  u_int64_t DONOTSET_lastGWTick;
+  u_int64_t DONOTSET_lastRESTTick;
+  u_int64_t DONOTSET_lastHeartbeatTick;
+  unsigned short DONOTSET_currentError;
+  int DONOTSET_heartbeat_interval;
+  SSL_CTX *DONOTSET_rest_ctx;
+  BIO *DONOTSET_rest_bio;
+  SSL_CTX *DONOTSET_gateway_ctx;
+  BIO *DONOTSET_gateway_bio;
+  //DisC_callbacks_t *DONOTSET_callbacks; make it store it differently
+} DisC_session_t;
 
 
-//typedef void (*DisC_callback_t)(DisC_session_t *session, void *object, unsigned int type);
-typedef void (*DisC_callback_t)(void *object, unsigned int type);
+
+
+typedef void (*DisC_callback_t)(DisC_session_t *session, void *object, unsigned int type);
+//typedef void (*DisC_callback_t)(void *object, unsigned int type);
 
 
 
@@ -74,27 +96,6 @@ typedef struct
   DisC_callback_t voice_server_update;
 } DisC_callbacks_t;
 
-typedef struct
-{
-  char *token;
-  DisC_BOOL_t clientType;
-  short logLevel;
-  const char *internalName;//used for identifying what session is which in logs. Just for fun
-  const char *logFileLocation;
-  //lib handles the rest of these
-  DisC_sessionID_t DONOTSET_id;
-  u_int64_t DONOTSET_lastGWTick;
-  u_int64_t DONOTSET_lastRESTTick;
-  u_int64_t DONOTSET_lastHeartbeatTick;
-  unsigned short DONOTSET_currentError;
-  int DONOTSET_heartbeat_interval;
-  SSL_CTX *DONOTSET_rest_ctx;
-  BIO *DONOTSET_rest_bio;
-  SSL_CTX *DONOTSET_gateway_ctx;
-  BIO *DONOTSET_gateway_bio;
-  DisC_callbacks_t *DONOTSET_callbacks;
-} DisC_session_t;
-
 //discord gateway objects
 enum DisC_event_data_type
 {
@@ -119,6 +120,24 @@ enum DisC_gateway_opcode
   DISC_OP_HEARTBEAT_ACK
 };
 
+enum DisC_event_status
+{
+  DISC_STATUS_ONLINE,
+  DISC_STATUS_DO_NOT_DISTURB,
+  DISC_STATUS_IDLE,
+  DISC_STATUS_INVISIBLE,
+  DISC_STATUS_OFFLINE
+};
+
+enum DisC_event_activity
+{
+  DISC_ACTIVITY_PLAYING,
+  DISC_ACTIVITY_STREAMING,
+  DISC_ACTIVITY_LISTENING,
+  DISC_ACTIVITY_WATCHING,
+  DISC_ACTIVITY_NOTHING
+};
+
 typedef struct
 {
   int op;
@@ -127,6 +146,7 @@ typedef struct
   int s;//"sequence number, used for resuming sessions and heartbeats" OPCODE 0
   char *t;//"the event name for this payload" OPCODE 0
 } DisC_gateway_payload_t;
+
 
 //discord REST objects------------------------------------------
 
@@ -453,6 +473,17 @@ typedef struct
   DisC_guild_t guild;
   DisC_channel_t channel;
 } DisC_invite_t;
+
+//discord gateway events----------------------------------------
+
+typedef struct
+{
+  DisC_BOOL_t isSince;
+  int since;//only read if using since
+  DisC_game_t game;
+  short status;
+  DisC_BOOL_t afk;
+} DisC_gateway_status_update_t;
 
 #ifdef __cplusplus
 }

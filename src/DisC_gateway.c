@@ -17,6 +17,9 @@
 
 
 
+
+static short internal_CheckSendHeartbeat(DisC_session_t *session);
+
 static char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str);
 
 static char *internal_GenerateUpgradeHeaders(DisC_session_t *session, char *b64Key, char *URI, char *host);
@@ -27,8 +30,10 @@ static short internal_WriteData(DisC_session_t *session, unsigned char *data, un
 
 //=======================================================================================================
 
-short internal_CheckSendHeartbeat(DisC_session_t *session)//TODO completely redo the networking system so long blocking operations don't interrupt heartbeats
+
+static short internal_CheckSendHeartbeat(DisC_session_t *session)//TODO completely redo the networking system so long blocking operations don't interrupt heartbeats
 {
+  //TODO run this function from the check and manage function
   #ifdef _WIN32
 
   #else
@@ -39,6 +44,19 @@ short internal_CheckSendHeartbeat(DisC_session_t *session)//TODO completely redo
   //check last tick heartbeat was sent at
   //if tick is after the tick wait, send a heartbeat, then check for opcode 11
   //otherwise, don' do anything
+
+  //TODO make after doing the gateway identify
+  /*
+  internal_WriteData(session, request, strlen(request));
+  returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
+  while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))
+  {
+    returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
+    sleep(1);
+  }
+  */
+
+  return DISC_ERROR_NONE;
 }
 
 static char *internal_GetHTTPResponseCode(DisC_session_t *session, char *str)
@@ -202,7 +220,7 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
 
 
           sleep(1);//set to one second because this is the only one that actually works for some reason. BIO non blocking is really weird.
-          retries++;
+          retries++;//TODO wait for the socket the right way instead of sleeping. This is going to produce wildly different results for everything
         }
       }
       else
@@ -271,10 +289,14 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
             //session->DONOTSET_heartbeat_interval = internalPayload->
 
             //send first heartbeat
+
           }
           else
           {
             //error
+            DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_ERROR, "Gateway did not reply HELLO");
+            DisC_AddError(session, DISC_ERROR_CONNECTION);
+            returnval = DISC_ERROR_CONNECTION;
           }
 
 
@@ -332,4 +354,141 @@ short DisC_gateway_DestroySession(DisC_session_t *session)
 short DisC_gateway_ListenAndManage(DisC_session_t *session)
 {
 
+}
+
+//gateway event manage functions
+
+short DisC_gateway_SendEvent(DisC_session_t *session, short OP, unsigned char *data, unsigned long dataLen)
+{
+  unsigned char *returnData;
+  unsigned long returnDataLen = 0;
+  json_t *root = json_object();
+
+  json_object_set_new(root, "op", json_integer((int)OP));
+  json_object_set_new(root, "d", json_loads(data, 0, NULL));//need to check if the data is even json data
+
+  printf("Printevent: %s\n", json_dumps(root, JSON_INDENT(2)));
+
+  internal_WriteData(session, json_dumps(root, 0), strlen(json_dumps(root, 0)));
+  returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
+  while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))//TODO remove this because discord only sends ACK with heartbeats
+  {
+    //block until the ACK response
+    returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
+    sleep(1);
+  }
+  //returnData[returnDataLen] == 0x00;
+  printf("returned gateway event: %s\n", returnData);
+
+
+  json_decref(root);
+
+
+  DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Sent event to gateway");
+  DisC_AddError(session, DISC_ERROR_NONE);
+  return DISC_ERROR_NONE;
+}
+
+short DisC_gateway_Identify(DisC_session_t *session, short large_threshold, short shardnum, short shardmax, DisC_gateway_status_update_t *status_update)
+{
+  int returnval = 0;
+  json_t *root = json_object();
+  json_t *properties = json_object();
+  json_t *presence = json_object();
+  json_t *game = json_object();
+  json_t *shards = json_array();
+
+  json_object_set_new(root, "token", json_string(session->token));
+
+  #ifdef _WIN32
+  json_object_set_new(properties, "$os", json_string("windows"));
+  if(session->logLevel == DISC_LOG_VERBOSE_AND_PRINT)
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Detected OS is windows");
+  #elif __APPLE__
+  json_object_set_new(properties, "$os", json_string("macOS"));
+  if(session->logLevel == DISC_LOG_VERBOSE_AND_PRINT)
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Detected OS is mac OS");
+  #elif __linux__
+  json_object_set_new(properties, "$os", json_string("linux"));
+  if(session->logLevel == DISC_LOG_VERBOSE_AND_PRINT)
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Detected OS is linux");
+  #elif __unix__
+  json_object_set_new(properties, "$os", json_string("unix"));
+  if(session->logLevel == DISC_LOG_VERBOSE_AND_PRINT)
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Detected OS is unix");
+  #else
+  json_object_set_new(properties, "$os", json_string("unknown"));
+  if(session->logLevel == DISC_LOG_VERBOSE_AND_PRINT)
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Detected OS is unknown");
+  #endif
+  json_object_set_new(properties, "$browser", json_string("DisC"));
+  json_object_set_new(properties, "$device", json_string("DisC"));
+  json_object_set_new(root, "properties", properties);
+
+  json_object_set_new(root, "compress", json_boolean(DISC_FALSE));//TODO make a compression alternative option
+  json_object_set_new(root, "large_threshold", json_integer((int)large_threshold));
+  if(shardmax > 0)
+  {
+    json_array_append_new(shards, json_integer(shardnum));
+    json_array_append_new(shards, json_integer(shardmax));
+    json_object_set_new(root, "shard", shards);//if this isnt necessary, then make it only run if requiring shards by user TODO this is the issue
+  }
+
+
+  if(status_update->game.type != DISC_ACTIVITY_NOTHING)
+  {
+    json_object_set_new(game, "name", json_string(status_update->game.name));
+    json_object_set_new(game, "type", json_integer(status_update->game.type));
+    if(status_update->game.url != NULL)
+      json_object_set_new(game, "url", json_string(status_update->game.url));
+    json_object_set_new(presence, "game", game);
+  }
+  switch(status_update->status)
+  {
+    case DISC_STATUS_ONLINE:
+      json_object_set_new(presence, "status", json_string("online"));
+    break;
+    case DISC_STATUS_DO_NOT_DISTURB:
+      json_object_set_new(presence, "status", json_string("dnd"));
+    break;
+    case DISC_STATUS_IDLE:
+      json_object_set_new(presence, "status", json_string("idle"));
+    break;
+    case DISC_STATUS_INVISIBLE:
+      json_object_set_new(presence, "status", json_string("invisible"));
+    break;
+    case DISC_STATUS_OFFLINE:
+      json_object_set_new(presence, "status", json_string("offline"));
+    break;
+  }
+  if(status_update->since > 0)
+    json_object_set_new(presence, "since", json_integer(status_update->since));
+  else
+    json_object_set_new(presence, "since", NULL);
+  json_object_set_new(presence, "afk", json_boolean(status_update->afk));
+  json_object_set_new(root, "presence", presence);
+
+  //printf("printway: %s\n", json_dumps(root, JSON_INDENT(2)));
+
+  //send the data to the gateway
+
+  if(DisC_gateway_SendEvent(session, DISC_OP_IDENTIFY, json_dumps(root, 0), strlen(json_dumps(root, 0))) != DISC_ERROR_NONE)
+  {//TODO before the rain knocks out power, I need to set this as an error case. This is a reminder for future me
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_ERROR, "Could not identify with gateway");
+    DisC_AddError(session, DISC_ERROR_CONNECTION);
+    returnval = DISC_ERROR_CONNECTION;
+  }
+  else
+  {
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Identified with gateway");
+    DisC_AddError(session, DISC_ERROR_NONE);
+    returnval = DISC_ERROR_NONE;
+  }
+
+  json_decref(game);
+  json_decref(presence);
+  json_decref(properties);
+  json_decref(root);
+
+  return returnval;
 }
