@@ -180,7 +180,7 @@ void Disc_Delay(unsigned long milisec)
   #else
     struct timespec req;
     req.tv_sec = 0;//TODO un linux-only this. iirc BSD does something differrent
-    req.tv_nsec = milisec * 1000000;//to convert it to nanoseconds
+    req.tv_nsec = (milisec * 10000000);//to convert it to nanoseconds
     nanosleep(&req, NULL);
   #endif
 }

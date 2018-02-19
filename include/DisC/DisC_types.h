@@ -20,7 +20,7 @@ typedef uint8_t DisC_BOOL_t;
 typedef uint32_t DisC_sessionID_t; //no need for anything larger. No way more than uint sessions will be used ever
 
 
-enum DisC_BOOL_t
+enum DisC_BOOL_enum
 {
   DISC_FALSE,
   DISC_TRUE
