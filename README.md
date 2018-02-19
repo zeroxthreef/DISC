@@ -4,7 +4,9 @@ A discord library for C. You can use it with C++, but it doesn't have any nifty 
 Also, sorry for the hiatus. I had alot of things get in the way.
 
 ## Build instructions
-* ./configure
+(optional) * mkdir build
+(optional) * cd build
+(use . if doing in tree build) * cmake ..
 * make
 * make install
 
