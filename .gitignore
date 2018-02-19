@@ -1,3 +1,6 @@
 *.a
 CMakeFiles/
 CMakeCache.txt
+*.cmake
+# Now that cmake is in place this is a good thing
+Makefile
