@@ -13,6 +13,6 @@ find_package(Jansson REQUIRED )
 include_directories(AFTER ${JANSSON_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} )
 
 # library
-ADD_LIBRARY( DisC STATIC src/DisC_errors.c src/DisC.c src/DisC_gateway.h src/DisC.h src/DisC_rest.c src/DisC_util.h src/DisC_object.h src/DisC_util.c src/DisC_errors.h src/DisC_gateway.c src/DisC_types.h src/DisC_object.c src/DisC_rest.h )
+ADD_LIBRARY( DisC STATIC src/DisC_errors.c src/DisC.c src/DisC_rest.c src/DisC_util.c src/DisC_gateway.c src/DisC_object.c )
 
 # test executable(s) (tbd)
