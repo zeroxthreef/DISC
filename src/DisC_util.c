@@ -1,6 +1,6 @@
 #ifdef _WIN32
 #include <windows.h>
-#else
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -172,7 +172,7 @@ short DisC_asprintf(char **string, const char *fmt, ...)
   va_end(list);
 }
 
-int Disc_Delay(unsigned long milisec)
+void Disc_Delay(unsigned long milisec)
 {
   #ifdef _WIN32
     //do the windows version

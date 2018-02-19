@@ -6,7 +6,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "DisC_util.h"
 #include "DisC.h"
 
 /*The only global variables in DisC*/
