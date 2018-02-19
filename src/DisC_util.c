@@ -178,9 +178,19 @@ void Disc_Delay(unsigned long milisec)
     //do the windows version
     Sleep(milisec);//TODO do this right
   #else
+    long sec = milisec / 1000;
     struct timespec req;
-    req.tv_sec = 0;//TODO un linux-only this. iirc BSD does something differrent
-    req.tv_nsec = (milisec * 10000000);//to convert it to nanoseconds
+
+    if(milisec >= 1000)
+    {
+      req.tv_sec = sec;//TODO un linux-only this. iirc BSD does something differrent
+      req.tv_nsec = (milisec * 1000000) - (sec * 1000);//to convert it to nanoseconds
+    }
+    else
+    {
+      req.tv_sec = 0;//TODO un linux-only this. iirc BSD does something differrent
+      req.tv_nsec = (milisec * 1000000);//to convert it to nanoseconds
+    }
     nanosleep(&req, NULL);
   #endif
 }
