@@ -5,9 +5,13 @@ Also, sorry for the hiatus. I had alot of things get in the way.
 
 ## Build instructions
 (optional) `mkdir build`
+
 (optional) `cd build`
+
 (use . if doing in tree build) `cmake ..`
+
 `make`
+
 `sudo make install`
 
 ## Status
