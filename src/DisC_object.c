@@ -142,7 +142,7 @@ DisC_channel_t *DisC_object_GenerateChannel(DisC_session_t *session, char *jsonD
       unsigned long i;
       for(i = 0; i < channelInternal->recipientCount; i++)
       {
-        DisC_user_t *temp = DisC_object_GenerateUser(session, json_dumps(json_array_get(recipients, i), 0));
+        DisC_user_t *temp = DisC_object_GenerateUser(session, json_dumps(json_array_get(recipients, i), 0));//nononono, this is json_string_value
         recipientsInternal[i] = *temp;
         //free(temp);//actually do it right
       }

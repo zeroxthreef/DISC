@@ -33,6 +33,8 @@ char *DisC_strmkdup(const char *str);
 
 short DisC_asprintf(char **string, const char *fmt, ...);
 
+void Disc_Delay(unsigned long milisec);
+
 //===========================================================================================================
 
 short Disc_util_FreeChannel(DisC_session_t *session, DisC_channel_t *channel);

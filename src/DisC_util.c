@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -167,6 +170,19 @@ short DisC_asprintf(char **string, const char *fmt, ...)
     }
   }
   va_end(list);
+}
+
+int Disc_Delay(unsigned long milisec)
+{
+  #ifdef _WIN32
+    //do the windows version
+    Sleep(milisec);//TODO do this right
+  #else
+    struct timespec req;
+    req.tv_sec = 0;//TODO un linux-only this. iirc BSD does something differrent
+    req.tv_nsec = milisec * 1000000;//to convert it to nanoseconds
+    nanosleep(&req, NULL);
+  #endif
 }
 
 //cleaners======================================================================

@@ -21,7 +21,7 @@ Also, I'll be changing the name from DISC to DisC in the future.
 ## TODO
 * Add all REST functions
 * Add ratelimiting
-* Connect to the gateway
+* Proper gateway handling
 * Add everything to work with the gateway and use callbacks
 * Add better thread support
 

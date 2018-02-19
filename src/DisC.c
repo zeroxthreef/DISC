@@ -6,6 +6,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "DisC_util.h"
 #include "DisC.h"
 
 /*The only global variables in DisC*/
@@ -87,13 +88,6 @@ short DisC_StartAllSessions()
   printf("Enterring loop\n");
   //TODO make a custom loop that runs in threads
   unsigned long i;
-  #ifdef _WIN32
-  //do the windows version
-  #else
-  struct timespec req;
-  req.tv_sec = 0;//TODO un linux-only this
-  req.tv_nsec = 499999999;//the max divided by 2. Half a second
-  #endif
   while(sessionCount > 0)
   {
     //loop through all discord gateway sockets and check for data. TODO use select or some polling thing.
@@ -103,12 +97,7 @@ short DisC_StartAllSessions()
       DisC_gateway_ListenAndManage(sessions[i]);
     }
 
-    #ifdef _WIN32
-    Sleep(500);//TODO do this right
-    #else
-    nanosleep(&req, NULL);
-    #endif
-
+    Disc_Delay(500);//delay half a second
 
     //call a post loop function
   }

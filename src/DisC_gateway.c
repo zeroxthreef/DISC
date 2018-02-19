@@ -219,7 +219,7 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
             break;
 
 
-          sleep(1);//set to one second because this is the only one that actually works for some reason. BIO non blocking is really weird.
+          Disc_Delay(1000);//set to one second because this is the only one that actually works for some reason. BIO non blocking is really weird.
           retries++;//TODO wait for the socket the right way instead of sleeping. This is going to produce wildly different results for everything
         }
       }
@@ -249,7 +249,7 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
         while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))
         {
           returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
-          sleep(1);
+          Disc_Delay(1000);
         }
 
         //printf("http data: %s\n", returnData);
@@ -269,7 +269,7 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
           while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))
           {
             returnData = internal_ReadData(session, &returnDataLen, DISC_FALSE);
-            sleep(1);
+            Disc_Delay(1000);
           }
           jsonResponse = strstr(returnData, "{");
           char *replace = strrchr(jsonResponse, '}');
@@ -375,7 +375,7 @@ short DisC_gateway_SendEvent(DisC_session_t *session, short OP, unsigned char *d
   {
     //block until the ACK response
     returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
-    sleep(1);
+    Disc_Delay(1000);
   }
   //returnData[returnDataLen] == 0x00;
   printf("returned gateway event: %s\n", returnData);
