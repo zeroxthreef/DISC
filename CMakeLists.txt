@@ -15,4 +15,7 @@ include_directories(AFTER ${JANSSON_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} )
 # library
 ADD_LIBRARY( DisC STATIC src/DisC_errors.c src/DisC.c src/DisC_rest.c src/DisC_util.c src/DisC_gateway.c src/DisC_object.c )
 
+
+install(TARGETS DisC DESTINATION lib)
+install(DIRECTORY include/DisC DESTINATION include)
 # test executable(s) (tbd)
