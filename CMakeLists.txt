@@ -11,6 +11,7 @@ add_definitions( -DDISC_VER="${DISC_VER}" )
 find_package(OpenSSL REQUIRED )
 find_package(Jansson REQUIRED )
 include_directories(AFTER ${JANSSON_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} )
+include_directories(BEFORE include/DisC )
 
 # library
 ADD_LIBRARY( DisC STATIC src/DisC_errors.c src/DisC.c src/DisC_rest.c src/DisC_util.c src/DisC_gateway.c src/DisC_object.c )
