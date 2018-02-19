@@ -113,7 +113,8 @@ static unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *
     exit(1);
   }
   status = byteChunkMax;
-  do {
+  do
+  {
     status = (unsigned long)BIO_read(session->DONOTSET_gateway_bio, buffer + byteCount, status);
     if(status == -1)
     {
@@ -138,7 +139,8 @@ static unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *
 
 
 
-  } while(status > 0 && !foundHTTPEnd);
+  }
+  while(status > 0 && !foundHTTPEnd);
 
 
 
