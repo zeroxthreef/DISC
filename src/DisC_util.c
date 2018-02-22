@@ -195,6 +195,23 @@ void Disc_Delay(unsigned long milisec)
   #endif
 }
 
+
+//stupid thing copied from stackoverflow. Im only using it to check my websocket stuff. Will delete
+void    print_bits(unsigned char octet)
+{
+    int z = 128, oct = octet;
+
+    while (z > 0)
+    {
+        if (oct & z)
+            printf("1");
+        else
+            printf("0");
+        z >>= 1;
+    }
+    printf(" ");
+}
+
 //cleaners======================================================================
 
 short Disc_util_FreeChannel(DisC_session_t *session, DisC_channel_t *channel)

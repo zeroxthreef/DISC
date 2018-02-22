@@ -2,7 +2,10 @@
 #include <windows.h>
 #endif
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <errno.h>
 #include <time.h>
 
@@ -26,7 +29,7 @@ static char *internal_GenerateUpgradeHeaders(DisC_session_t *session, char *b64K
 
 static unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *dataLen, DisC_BOOL_t isHandshaking);
 
-static short internal_WriteData(DisC_session_t *session, unsigned char *data, unsigned long dataLen);
+static short internal_WriteData(DisC_session_t *session, unsigned char *data, unsigned long dataLen, DisC_BOOL_t isWebsocket);
 
 //=======================================================================================================
 
@@ -151,13 +154,205 @@ static unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *
   return buffer;
 }
 
-static short internal_WriteData(DisC_session_t *session, unsigned char *data, unsigned long dataLen)
+static short internal_WriteData(DisC_session_t *session, unsigned char *data, unsigned long dataLen, DisC_BOOL_t isWebsocket)
 {
-  if(BIO_write(session->DONOTSET_gateway_bio, data, dataLen) <= 0)
+  //refer to https://tools.ietf.org/html/rfc6455#page-27
+  //setup websocket frame. No doubt that im doing this totally wrong
+  unsigned char *maskedData = NULL, *finalData = NULL;
+  //TODO actually make this automatically
+  u_int8_t controlAndOpcode = 0b10000001;
+  //u_int8_t maskAndLength = 0b10000000;
+  u_int8_t maskAndLength = 0x80;
+  //u_int8_t partialMask = (uint8_t)rand();
+  //u_int32_t mask = ((u_int32_t)rand()) * 2;
+  u_int32_t mask = UINT32_MAX;//NOTE temporary
+  u_int64_t finalDataLen, i;
+  unsigned int numberOffset = 0;
+
+
+  if(isWebsocket)
   {
-    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Couldnt send to gateway... At the moment, this means further library dysfunction because I dont want to risk being banned from the api if I pull something stupid on accident");
-    DisC_AddError(session, DISC_ERROR_CONNECTION);
-    return DISC_ERROR_CONNECTION;
+    maskedData = malloc(sizeof(unsigned char) * dataLen);
+    if(maskedData == NULL)
+    {
+      DisC_AddError(session, DISC_ERROR_MEMORY);
+      return DISC_ERROR_MEMORY;
+    }
+    //memcpy(maskedData, data, dataLen);
+
+    //mask data
+    //maskedData = maskedData^mask;
+
+    for(i = 0; i <= dataLen; i++)
+    {
+      //maskedData[i] = data[i]^*(uint8_t *)(&mask + (i % 4));
+      //printf("mask: %c %c %u\n", maskedData[i], maskedData[i]^*(uint8_t *)(&mask + (i % 4)), (i % 4));
+
+      //maskedData[i] = data[i]^(mask >> (8 * (i % 4)));
+      //printf("mask: %c %c %u\n", maskedData[i], maskedData[i]^(mask << 8 * (i % 4)), (i % 4));
+
+      maskedData[i] = data[i]^(uint8_t)0xFF;
+      printf("mask: %c %c %u\n", maskedData[i], maskedData[i]^(uint8_t)0xFF, (i % 4));
+    }
+
+
+
+
+    //encode length
+
+
+
+    if(dataLen <= 125)
+    {
+      maskAndLength = maskAndLength^(uint8_t)dataLen;//copy the second byte
+      finalData = calloc(1, sizeof(uint16_t) + sizeof(u_int32_t) + dataLen);
+      finalDataLen = sizeof(uint16_t) + sizeof(u_int32_t) + dataLen;
+    }
+    else if(dataLen <= UINT16_MAX)//make it fix a 16 bit number
+    {
+      maskAndLength = maskAndLength^(uint8_t)126;
+      finalData = calloc(1, sizeof(uint16_t) + sizeof(uint16_t) + sizeof(u_int32_t) + dataLen);
+      numberOffset = sizeof(uint16_t);
+      finalDataLen = sizeof(uint16_t) + sizeof(uint16_t) + sizeof(u_int32_t) + dataLen;
+      //uint16_t *tempNum = (uint16_t *)&finalData[sizeof(uint16_t) + numberOffset];//remove number offset? yep. Oh well, doing bitshifting I guess
+      //*tempNum = (uint16_t)dataLen;
+      finalData[2] = dataLen >> 8;
+      finalData[3] = dataLen;
+    }
+    else//its only able to fit in a 64 bit number
+    {
+      maskAndLength = maskAndLength^(uint8_t)127;
+      finalData = calloc(1, sizeof(uint16_t) + sizeof(uint64_t) + sizeof(u_int32_t) + dataLen);
+      numberOffset = sizeof(uint64_t);
+      finalDataLen = sizeof(uint16_t) + sizeof(uint64_t) + sizeof(u_int32_t) + dataLen;
+      //uint64_t *tempNum = (uint64_t *)&finalData[sizeof(uint16_t) + numberOffset];//remove number offset?
+      //*tempNum = (uint64_t)dataLen;
+      for(i = 0; i < 8; i++)
+      {
+        finalData[2 + i] = dataLen >> (8 * i);
+      }
+    }
+    //NOTE to future me. Change the websocket testing server back to the discord one in all the areas affected.
+
+    finalData[0] = controlAndOpcode;
+    finalData[1] = maskAndLength;
+    //uint32_t *tempMaskLoc = (uint32_t *)&finalData[sizeof(uint16_t) + numberOffset + sizeof(uint32_t)];//uint16_t so I dont have to multiply twice
+    //*tempMaskLoc = mask;
+    finalData[sizeof(uint16_t) + numberOffset] = (mask >> 24);
+    finalData[sizeof(uint16_t) + numberOffset + 1] = (mask >> 16);
+    finalData[sizeof(uint16_t) + numberOffset + 2] = (mask >> 8);
+    finalData[sizeof(uint16_t) + numberOffset + 3] = mask;
+
+    memcpy(&finalData[sizeof(uint16_t) + numberOffset + sizeof(uint32_t)], maskedData, dataLen);
+
+    //finalData[numberOffset + sizeof(uint32_t) + dataLen] = 0x00;
+
+    //for(i = 0; i < finalDataLen; i++)
+    //{
+      //print_bits(finalData[i]);
+    //}
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Sending websocket with frame: control and opcode: %x|%x, mask and length: %x|%x, length: %x|%x, mask: %x|%x, data %c\n", controlAndOpcode, finalData[0], maskAndLength, finalData[1], (unsigned)dataLen, (uint16_t)(finalData[sizeof(uint16_t) + numberOffset]), mask, (uint32_t)(finalData[sizeof(uint16_t) + numberOffset + sizeof(uint32_t)]), finalData[sizeof(uint16_t) + numberOffset + sizeof(uint32_t) + dataLen]);
+
+    /*
+    finalData = malloc((sizeof(uint8_t) * 2) + sizeof(uint32_t));//will reallocate this a final time to include the data
+    if(finalData == NULL)
+    {
+      DisC_AddError(session, DISC_ERROR_MEMORY);
+      return DISC_ERROR_MEMORY;
+    }
+
+
+    memcpy(finalData, &controlAndOpcode, sizeof(uint8_t));//TODO fix ordering
+    printf("tesssst: %c\n", finalData);
+
+    if(dataLen <= 125)
+    {
+      maskAndLength = maskAndLength^(uint8_t)dataLen;//copy the second byte
+      memcpy(finalData + sizeof(uint8_t), &maskAndLength, sizeof(uint8_t));//write the length
+      memcpy(finalData + (sizeof(uint8_t) * 2), &mask, sizeof(uint32_t));//copy the mask to the end
+
+      finalData = realloc(finalData, (sizeof(uint8_t) * 2) + sizeof(uint32_t) + (dataLen * sizeof(unsigned char)));//reallocate it to fit the data
+      if(finalData == NULL)
+      {
+        DisC_AddError(session, DISC_ERROR_MEMORY);
+        return DISC_ERROR_MEMORY;
+      }
+      memcpy(finalData + (sizeof(uint8_t) * 2) + sizeof(uint32_t), maskedData, dataLen);//copy the final data after the frame header
+      finalDataLen = (sizeof(uint8_t) * 2) + sizeof(uint32_t) + (dataLen * sizeof(unsigned char));
+      DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Sending websocket with frame(#0): control and opcode: %x, mask and length: %x, mask: %x, data :%s", controlAndOpcode, maskAndLength, mask, finalData + (sizeof(uint8_t) * 2) + sizeof(uint32_t));
+
+    }
+    else if(dataLen > 125 && dataLen < ULONG_MAX)//make it fix a 16 bit number
+    {
+      maskAndLength = maskAndLength^(uint8_t)126;
+      finalData = realloc(finalData, sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t));
+      if(finalData == NULL)
+      {
+        DisC_AddError(session, DISC_ERROR_MEMORY);
+        return DISC_ERROR_MEMORY;
+      }
+      memcpy(finalData + sizeof(uint8_t), &maskAndLength, sizeof(uint8_t));//copy the second byte
+      //finalData + (sizeof(uint8_t) + sizeof(uint16_t)) = (uint16_t)dataLen;//write the length
+      uint16_t tempLen = (uint16_t)dataLen;
+      memcpy(finalData + (sizeof(uint8_t) + sizeof(uint16_t)), &tempLen, sizeof(uint16_t));//write the length
+      memcpy(finalData + (sizeof(uint8_t) + sizeof(uint16_t)), &mask, sizeof(uint32_t));//copy the mask to the end
+
+      finalData = realloc(finalData, (sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t)) + (dataLen * sizeof(unsigned char)));//reallocate it to fit the data
+      if(finalData == NULL)
+      {
+        DisC_AddError(session, DISC_ERROR_MEMORY);
+        return DISC_ERROR_MEMORY;
+      }
+      memcpy(finalData + (sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t)), maskedData, dataLen);//copy the final data after the frame header
+      finalDataLen = (sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t)) + (dataLen * sizeof(unsigned char));
+      DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Sending websocket with frame(#1): control and opcode: %c|%c, mask and length: %c|%c, mask: %x|%x, data :%s", controlAndOpcode, finalData, maskAndLength, finalData + sizeof(uint8_t), mask, finalData + (sizeof(uint8_t) + sizeof(uint16_t)), finalData + (sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t)));
+
+    }
+    else//its only able to fit in a 64 bit number
+    {
+      maskAndLength = maskAndLength^(uint8_t)127;
+      finalData = realloc(finalData, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint32_t));
+      if(finalData == NULL)
+      {
+        DisC_AddError(session, DISC_ERROR_MEMORY);
+        return DISC_ERROR_MEMORY;
+      }
+      memcpy(finalData + sizeof(uint8_t), &maskAndLength, sizeof(uint8_t));//copy the second byte
+      //finalData + (sizeof(uint8_t) + sizeof(uint64_t)) = (uint64_t)dataLen;//write the length
+      uint64_t tempLen = (uint64_t)dataLen;
+      memcpy(finalData + (sizeof(uint8_t) + sizeof(uint64_t)), &tempLen, sizeof(uint64_t));//write the length
+      memcpy(finalData + (sizeof(uint8_t) + sizeof(uint64_t)), &mask, sizeof(uint32_t));//copy the mask to the end
+
+      finalData = realloc(finalData, (sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint32_t)) + (dataLen * sizeof(unsigned char)));//reallocate it to fit the data
+      if(finalData == NULL)
+      {
+        DisC_AddError(session, DISC_ERROR_MEMORY);
+        return DISC_ERROR_MEMORY;
+      }
+      memcpy(finalData + (sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint32_t)), maskedData, dataLen);//copy the final data after the frame header
+      finalDataLen = (sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint32_t)) + (dataLen * sizeof(unsigned char));
+      DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Sending websocket with frame(#2): control and opcode: %x, mask and length: %x, mask: %x, data :%s", controlAndOpcode, maskAndLength, mask, finalData + (sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint32_t)));
+
+    }
+    */
+
+    if(BIO_write(session->DONOTSET_gateway_bio, finalData, finalDataLen) <= 0)//TODO TODO TODO TODO check if its a websocket or its the initial upgrade http req
+    {
+      DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Couldnt send to gateway... At the moment, this means further library dysfunction because I dont want to risk being banned from the api if I pull something stupid on accident");
+      DisC_AddError(session, DISC_ERROR_CONNECTION);
+      return DISC_ERROR_CONNECTION;
+    }
+
+
+  }
+  else
+  {
+    if(BIO_write(session->DONOTSET_gateway_bio, data, dataLen) <= 0)//TODO TODO TODO TODO check if its a websocket or its the initial upgrade http req
+    {
+      DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Couldnt send to gateway... At the moment, this means further library dysfunction because I dont want to risk being banned from the api if I pull something stupid on accident");
+      DisC_AddError(session, DISC_ERROR_CONNECTION);
+      return DISC_ERROR_CONNECTION;
+    }
   }
 
   DisC_AddError(session, DISC_ERROR_NONE);
@@ -246,7 +441,7 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
         unsigned long returnDataLen = 0;
         char *jsonResponse = NULL;
         char *request = internal_GenerateUpgradeHeaders(session, "x3JJHMbDL1EzLkh9GBhXDw==", "/", wsurl);//TODO not use the wikipedia base64 haha
-        internal_WriteData(session, request, strlen(request));
+        internal_WriteData(session, request, strlen(request), DISC_FALSE);
         returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
         while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))
         {
@@ -371,7 +566,7 @@ short DisC_gateway_SendEvent(DisC_session_t *session, short OP, unsigned char *d
 
   printf("Printevent: %s\n", json_dumps(root, JSON_INDENT(2)));
 
-  internal_WriteData(session, json_dumps(root, 0), strlen(json_dumps(root, 0)));
+  internal_WriteData(session, json_dumps(root, 0), strlen(json_dumps(root, 0)), DISC_TRUE);
   returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
   while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))//TODO remove this because discord only sends ACK with heartbeats
   {

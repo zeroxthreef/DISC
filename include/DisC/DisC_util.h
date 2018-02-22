@@ -35,6 +35,9 @@ short DisC_asprintf(char **string, const char *fmt, ...);
 
 void Disc_Delay(unsigned long milisec);
 
+//stupid thing copied from stackoverflow. Im only using it to check my websocket stuff. Will delete
+void    print_bits(unsigned char octet);//TODO remove this
+
 //===========================================================================================================
 
 short Disc_util_FreeChannel(DisC_session_t *session, DisC_channel_t *channel);
