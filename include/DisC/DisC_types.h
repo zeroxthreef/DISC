@@ -46,6 +46,7 @@ typedef struct
   u_int64_t DONOTSET_lastGWTick;
   u_int64_t DONOTSET_lastRESTTick;
   u_int64_t DONOTSET_lastHeartbeatTick;
+  u_int32_t DONOTSET_lastSeqNum;//needed for the sequence num in heartbeats
   unsigned short DONOTSET_currentError;
   int DONOTSET_heartbeat_interval;
   SSL_CTX *DONOTSET_rest_ctx;

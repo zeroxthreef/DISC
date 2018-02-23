@@ -1,5 +1,7 @@
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <sys/time.h>
 #endif
 #include <stdio.h>
 #include <stdint.h>
@@ -7,7 +9,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <errno.h>
-#include <time.h>
+//#include <time.h>
 
 #include <jansson.h>
 
@@ -37,27 +39,35 @@ static short internal_WriteData(DisC_session_t *session, unsigned char *data, un
 static short internal_CheckSendHeartbeat(DisC_session_t *session)//TODO completely redo the networking system so long blocking operations don't interrupt heartbeats
 {
   //TODO run this function from the check and manage function
-  #ifdef _WIN32
 
-  #else
-  struct timespec *tick;
-  tick = (struct timespec *)malloc(sizeof(tick));
-  clock_gettime(CLOCK_MONOTONIC, &tick);
-  #endif
+  uint64_t tick = DisC_GetTick();
+
   //check last tick heartbeat was sent at
   //if tick is after the tick wait, send a heartbeat, then check for opcode 11
   //otherwise, don' do anything
 
   //TODO make after doing the gateway identify
-  /*
-  internal_WriteData(session, request, strlen(request));
-  returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
-  while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))
+
+  if(((session->DONOTSET_lastHeartbeatTick) + session->DONOTSET_heartbeat_interval) <= tick)//check if the current tick is the one in the past plus the heartbeat interval
   {
-    returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
-    sleep(1);
+    unsigned char *eventData;
+
+    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Heartbeating");
+    session->DONOTSET_lastHeartbeatTick = tick;
+
+    if(session->DONOTSET_lastSeqNum == UINT32_MAX)
+    {
+      eventData = "null";//set it to NULL
+    }
+    else
+    {
+      eventData = json_dumps(json_integer(session->DONOTSET_lastSeqNum), 0);
+    }
+    DisC_gateway_SendEvent(session, DISC_OP_HEARTBEAT, eventData, strlen(eventData));
   }
-  */
+
+  //printf("clock: %lu clock + future: %lu\n", tick, ((session->DONOTSET_lastHeartbeatTick) + session->DONOTSET_heartbeat_interval));
+
 
   return DISC_ERROR_NONE;
 }
@@ -192,7 +202,7 @@ static short internal_WriteData(DisC_session_t *session, unsigned char *data, un
       //printf("mask: %c %c %u\n", maskedData[i], maskedData[i]^(mask << 8 * (i % 4)), (i % 4));
 
       maskedData[i] = data[i]^(uint8_t)0xFF;
-      printf("mask: %c %c %u\n", maskedData[i], maskedData[i]^(uint8_t)0xFF, (i % 4));
+      //printf("mask: %c %c %u\n", maskedData[i], maskedData[i]^(uint8_t)0xFF, (i % 4));
     }
 
 
@@ -251,7 +261,7 @@ static short internal_WriteData(DisC_session_t *session, unsigned char *data, un
     //{
       //print_bits(finalData[i]);
     //}
-    DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Sending websocket with frame: control and opcode: %x|%x, mask and length: %x|%x, length: %x|%x, mask: %x|%x, data %c\n", controlAndOpcode, finalData[0], maskAndLength, finalData[1], (unsigned)dataLen, (uint16_t)(finalData[sizeof(uint16_t) + numberOffset]), mask, (uint32_t)(finalData[sizeof(uint16_t) + numberOffset + sizeof(uint32_t)]), finalData[sizeof(uint16_t) + numberOffset + sizeof(uint32_t) + dataLen]);
+    //DisC_Log(session->logLevel, session->logFileLocation, DISC_SEVERITY_NOTIFY, "Sending websocket with frame: control and opcode: %x|%x, mask and length: %x|%x, length: %x|%x, mask: %x|%x, data %c\n", controlAndOpcode, finalData[0], maskAndLength, finalData[1], (unsigned)dataLen, (uint16_t)(finalData[sizeof(uint16_t) + numberOffset]), mask, (uint32_t)(finalData[sizeof(uint16_t) + numberOffset + sizeof(uint32_t)]), finalData[sizeof(uint16_t) + numberOffset + sizeof(uint32_t) + dataLen]);
 
     /*
     finalData = malloc((sizeof(uint8_t) * 2) + sizeof(uint32_t));//will reallocate this a final time to include the data
@@ -343,6 +353,8 @@ static short internal_WriteData(DisC_session_t *session, unsigned char *data, un
       return DISC_ERROR_CONNECTION;
     }
 
+    free(finalData);
+    free(maskedData);
 
   }
   else
@@ -416,7 +428,7 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
             break;
 
 
-          Disc_Delay(1000);//set to one second because this is the only one that actually works for some reason. BIO non blocking is really weird.
+          DisC_Delay(1000);//set to one second because this is the only one that actually works for some reason. BIO non blocking is really weird.
           retries++;//TODO wait for the socket the right way instead of sleeping. This is going to produce wildly different results for everything
         }
       }
@@ -446,7 +458,7 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
         while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))
         {
           returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
-          Disc_Delay(1000);
+          DisC_Delay(1000);
         }
 
         //printf("http data: %s\n", returnData);
@@ -466,7 +478,7 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
           while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))
           {
             returnData = internal_ReadData(session, &returnDataLen, DISC_FALSE);
-            Disc_Delay(1000);
+            DisC_Delay(1000);
           }
           jsonResponse = strstr(returnData, "{");
           char *replace = strrchr(jsonResponse, '}');
@@ -480,12 +492,13 @@ short DisC_gateway_InitSession(DisC_session_t *session, DisC_callbacks_t *callba
           if(internalPayload->op == DISC_OP_HELLO)
           {
             json_t *hello = json_loads(internalPayload->d, 0, NULL);
-            session->DONOTSET_heartbeat_interval = json_integer_value(json_object_get(hello, "heartbeat_interval"));
-            printf("Heartbeat interval: %d\n", session->DONOTSET_heartbeat_interval);
+            session->DONOTSET_heartbeat_interval = json_integer_value(json_object_get(hello, "heartbeat_interval")) / 1000;//doing this because the gateway payload only gets the common stuff.
+            printf("Heartbeat interval: %d\n", session->DONOTSET_heartbeat_interval);//Also, the above heartbeat setting is divided by 1000 temporarily
             json_decref(hello);
             //session->DONOTSET_heartbeat_interval = internalPayload->
 
-            //send first heartbeat
+            session->DONOTSET_lastHeartbeatTick = DisC_GetTick();
+            session->DONOTSET_lastSeqNum = UINT32_MAX;//unlikely that the sequence will ever hit this number. Still will find a better way to handle the first heartbeat though.
 
           }
           else
@@ -550,6 +563,9 @@ short DisC_gateway_DestroySession(DisC_session_t *session)
 
 short DisC_gateway_ListenAndManage(DisC_session_t *session)
 {
+  //NOTE this is the master function of the gateway and handling of it's events. All callbacks will be handled through
+  //here and also heartbeating.
+  internal_CheckSendHeartbeat(session);
 
 }
 
@@ -564,7 +580,7 @@ short DisC_gateway_SendEvent(DisC_session_t *session, short OP, unsigned char *d
   json_object_set_new(root, "op", json_integer((int)OP));
   json_object_set_new(root, "d", json_loads(data, 0, NULL));//need to check if the data is even json data
 
-  printf("Printevent: %s\n", json_dumps(root, JSON_INDENT(2)));
+  //printf("Printevent: %s\n", json_dumps(root, JSON_INDENT(2)));
 
   internal_WriteData(session, json_dumps(root, 0), strlen(json_dumps(root, 0)), DISC_TRUE);
   returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
@@ -572,7 +588,7 @@ short DisC_gateway_SendEvent(DisC_session_t *session, short OP, unsigned char *d
   {
     //block until the ACK response
     returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
-    Disc_Delay(1000);
+    DisC_Delay(1000);
   }
   //returnData[returnDataLen] == 0x00;
   printf("returned gateway event: %s\n", returnData);

@@ -33,7 +33,9 @@ char *DisC_strmkdup(const char *str);
 
 short DisC_asprintf(char **string, const char *fmt, ...);
 
-void Disc_Delay(unsigned long milisec);
+void DisC_Delay(unsigned long milisec);
+
+u_int64_t DisC_GetTick();
 
 //stupid thing copied from stackoverflow. Im only using it to check my websocket stuff. Will delete
 void    print_bits(unsigned char octet);//TODO remove this

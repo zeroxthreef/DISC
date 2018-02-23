@@ -1,11 +1,13 @@
 #ifdef _WIN32
 #include <windows.h>
+#include <time.h>
+#else
+#include <sys/time.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <time.h>
 
 #include "DisC_types.h"
 #include "DisC_errors.h"
@@ -29,7 +31,7 @@ short DisC_util_WriteFile(const char *path, unsigned char *data, unsigned long *
   return DISC_ERROR_NONE;
 }
 
-void DisC_Log(short logLevel, const char *logLoc, unsigned short severity, const char *fmt, ...)
+void DisC_Log(short logLevel, const char *logLoc, unsigned short severity, const char *fmt, ...)//TODO just send the session. Having to keep track of the log location and stuff isnt really necessary
 {
   va_list list;
   char *finalString = NULL;
@@ -172,7 +174,7 @@ short DisC_asprintf(char **string, const char *fmt, ...)
   va_end(list);
 }
 
-void Disc_Delay(unsigned long milisec)
+void DisC_Delay(unsigned long milisec)
 {
   #ifdef _WIN32
     //do the windows version
@@ -193,6 +195,22 @@ void Disc_Delay(unsigned long milisec)
     }
     nanosleep(&req, NULL);
   #endif
+}
+
+u_int64_t DisC_GetTick()
+{
+  u_int64_t tick;
+
+  #ifdef _WIN32
+    //do windows time stuff
+  #else//in the future, I need to have a way of deciding between gettimeofday and clock_gettime because some things dont support one or the other.
+    struct timeval tickTimeval;
+    gettimeofday(&tickTimeval, NULL);
+    //tick = (tickTimeval.tv_sec * 1000000) + (tickTimeval.tv_usec);
+    tick = tickTimeval.tv_sec;//temporary solution
+  #endif
+
+  return tick;
 }
 
 

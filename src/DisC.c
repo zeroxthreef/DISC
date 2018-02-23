@@ -96,7 +96,7 @@ short DisC_StartAllSessions()
       DisC_gateway_ListenAndManage(sessions[i]);
     }
 
-    Disc_Delay(500);//delay half a second
+    DisC_Delay(500);//delay half a second
 
     //call a post loop function
   }
