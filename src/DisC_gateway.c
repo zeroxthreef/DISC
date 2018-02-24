@@ -141,14 +141,18 @@ static unsigned char *internal_ReadData(DisC_session_t *session, unsigned long *
 
 
     //printf("buffer: %s\nstatus: %lu", buffer, status);
-    if(strstr(buffer, "\r\n\r\n") != NULL && isHandshaking)
+    if(isHandshaking)
     {
-      foundHTTPEnd = 1;
+      if(strstr(buffer, "\r\n\r\n") != NULL && isHandshaking)
+      {
+        foundHTTPEnd = 1;
+      }
+      else if(strchr(buffer, 0x00))
+      {
+        foundHTTPEnd = 1;//reusing variable
+      }
     }
-    else if(strchr(buffer, 0x00))
-    {
-      foundHTTPEnd = 1;//reusing variable
-    }
+
 
 
 
@@ -573,8 +577,6 @@ short DisC_gateway_ListenAndManage(DisC_session_t *session)
 
 short DisC_gateway_SendEvent(DisC_session_t *session, short OP, unsigned char *data, unsigned long dataLen)
 {
-  unsigned char *returnData;
-  unsigned long returnDataLen = 0;
   json_t *root = json_object();
 
   json_object_set_new(root, "op", json_integer((int)OP));
@@ -583,16 +585,6 @@ short DisC_gateway_SendEvent(DisC_session_t *session, short OP, unsigned char *d
   //printf("Printevent: %s\n", json_dumps(root, JSON_INDENT(2)));
 
   internal_WriteData(session, json_dumps(root, 0), strlen(json_dumps(root, 0)), DISC_TRUE);
-  returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
-  while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK))//TODO remove this because discord only sends ACK with heartbeats
-  {
-    //block until the ACK response
-    returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
-    DisC_Delay(1000);
-  }
-  //returnData[returnDataLen] == 0x00;
-  printf("returned gateway event: %s\n", returnData);
-
 
   json_decref(root);
 
@@ -601,6 +593,84 @@ short DisC_gateway_SendEvent(DisC_session_t *session, short OP, unsigned char *d
   DisC_AddError(session, DISC_ERROR_NONE);
   return DISC_ERROR_NONE;
 }
+
+short DisC_gateway_BlockAndListenForEvent(DisC_session_t *session, DisC_gateway_payload_t **payload)//used to block and listen to gateway events
+{
+  unsigned char *returnData = NULL, *finalData = NULL;
+  unsigned long returnDataLen = 0, finalDataLen = 0;
+
+  unsigned char finalFrame = 0, firstFrame = 1;
+
+  unsigned long frameLen = 0, headerOffset = 0, frameDataOffset = 0;
+  //125 126 127
+  returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
+  while(returnData == NULL && (errno == EAGAIN || errno == EWOULDBLOCK) && !finalFrame)//need to not do this multiple times by doin g it in other functions. Will have to do later
+  {
+    //block until the ACK response
+    returnData = internal_ReadData(session, &returnDataLen, DISC_TRUE);
+    DisC_Delay(1000);
+
+    //check for websocket frames
+    if(firstFrame)
+    {
+      headerOffset = 0;
+      //firstFrame = 0;
+    }
+
+    if(returnData[headerOffset] == 0b10000001)
+    {
+      finalFrame = 1;
+    }
+    else
+    {
+      finalFrame = 0;
+    }
+
+    if(returnData[headerOffset + 1] <= 125)//if its using that one little byte
+    {
+      frameLen = returnData[headerOffset + 1];
+    }
+    else if(returnData[headerOffset + 1] == 126)//if its using a 16 bit number
+    {
+      frameLen = (unsigned long)*((uint16_t *)&returnData[headerOffset + 2]);
+      frameDataOffset = sizeof(uint16_t) + 1;
+    }
+    else//if its using a 64bit number
+    {
+      frameLen = (unsigned long)*((uint64_t *)&returnData[headerOffset + 2]);
+      frameDataOffset = sizeof(uint64_t) + 1;
+    }
+
+    finalDataLen += frameLen;
+    finalData = realloc(finalData, finalDataLen);
+
+    if(firstFrame)
+    {
+      memcpy(finalData, returnData + frameDataOffset, frameLen);
+      firstFrame = 0;
+    }
+    else
+    {
+      memcpy(finalData + finalDataLen, returnData + frameDataOffset, frameLen);
+    }
+
+
+
+
+  }
+  //returnData[returnDataLen] == 0x00;
+  printf("returned gateway event: %s\n", finalData);
+
+  //TODO use DisC_object_GenerateGatewayPayload
+  //TODO future me: make an object parser for the "ready" event then listen for it in the listen and manage loop
+
+
+  //*payload = DisC_object_GenerateGatewayPayload(session, finalData);
+
+  DisC_AddError(session, DISC_ERROR_NONE);
+  return DISC_ERROR_NONE;
+}
+
 
 short DisC_gateway_Identify(DisC_session_t *session, short large_threshold, short shardnum, short shardmax, DisC_gateway_status_update_t *status_update)
 {
